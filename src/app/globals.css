@@ -1,0 +1,181 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* ── Renk sistemi ──────────────────────────────────────────── */
+:root {
+    --background: #fafaf8;
+    --foreground: #1a1a1a;
+    --accent: #e85d26;
+    --accent-light: #fff0ea;
+    --card-bg: #ffffff;
+    --border: #e8e6e1;
+    --muted: #6b6b6b;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not(.light) {
+        --background: #111110;
+        --foreground: #f0ede8;
+        --accent: #ff7340;
+        --accent-light: #2a1a10;
+        --card-bg: #1c1b19;
+        --border: #2e2d2a;
+        --muted: #9a9690;
+    }
+}
+
+.dark {
+    --background: #111110;
+    --foreground: #f0ede8;
+    --accent: #ff7340;
+    --accent-light: #2a1a10;
+    --card-bg: #1c1b19;
+    --border: #2e2d2a;
+    --muted: #9a9690;
+}
+
+.light {
+    --background: #fafaf8;
+    --foreground: #1a1a1a;
+    --accent: #e85d26;
+    --accent-light: #fff0ea;
+    --card-bg: #ffffff;
+    --border: #e8e6e1;
+    --muted: #6b6b6b;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-body), Georgia, serif;
+    -webkit-font-smoothing: antialiased;
+    transition:
+        background 0.2s,
+        color 0.2s;
+}
+
+/* ── Kategori renkleri ──────────────────────────────────────── */
+.kat-spor {
+    --kat-color: #2563eb;
+}
+.kat-teknoloji {
+    --kat-color: #7c3aed;
+}
+.kat-siyaset {
+    --kat-color: #dc2626;
+}
+.kat-ekonomi {
+    --kat-color: #ca8a04;
+}
+.kat-eglence {
+    --kat-color: #db2777;
+}
+.kat-saglik {
+    --kat-color: #16a34a;
+}
+.kat-bilim {
+    --kat-color: #0891b2;
+}
+.kat-dunya {
+    --kat-color: #9333ea;
+}
+.kat-kultur-sanat {
+    --kat-color: #ea580c;
+}
+.kat-diger {
+    --kat-color: #6b7280;
+}
+
+.kategori-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: color-mix(in srgb, var(--kat-color) 15%, transparent);
+    color: var(--kat-color);
+    border: 1px solid color-mix(in srgb, var(--kat-color) 30%, transparent);
+}
+
+/* ── Prose overrides ────────────────────────────────────────── */
+.prose {
+    --tw-prose-body: var(--foreground);
+    --tw-prose-headings: var(--foreground);
+    --tw-prose-links: var(--accent);
+    --tw-prose-bold: var(--foreground);
+    --tw-prose-counters: var(--muted);
+    --tw-prose-bullets: var(--accent);
+    --tw-prose-quotes: var(--muted);
+    --tw-prose-quote-borders: var(--accent);
+    --tw-prose-code: var(--foreground);
+    --tw-prose-pre-bg: var(--card-bg);
+    --tw-prose-hr: var(--border);
+}
+
+.prose p {
+    line-height: 1.85;
+    margin-bottom: 1.4em;
+}
+.prose h2 {
+    font-family: var(--font-display), Georgia, serif;
+    font-size: 1.7rem;
+    margin-top: 2.5em;
+    letter-spacing: -0.02em;
+}
+.prose h3 {
+    font-family: var(--font-display), Georgia, serif;
+    font-size: 1.25rem;
+    margin-top: 2em;
+}
+.prose blockquote {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-light);
+    padding: 1rem 1.5rem;
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+}
+
+/* ── Skeleton shimmer ───────────────────────────────────────── */
+@keyframes shimmer {
+    0% {
+        background-position: -600px 0;
+    }
+    100% {
+        background-position: 600px 0;
+    }
+}
+
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--border) 25%,
+        color-mix(in srgb, var(--border) 60%, var(--background)) 50%,
+        var(--border) 75%
+    );
+    background-size: 600px 100%;
+    animation: shimmer 1.4s infinite linear;
+    border-radius: 6px;
+}
+
+/* ── Sayfa geçişi ───────────────────────────────────────────── */
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-up {
+    animation: fadeUp 0.5s ease forwards;
+}
