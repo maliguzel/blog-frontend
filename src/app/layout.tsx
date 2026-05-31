@@ -1,3 +1,4 @@
+// src/app/layout.tsx
 import type { Metadata } from "next";
 import { Playfair_Display, Source_Serif_4 } from "next/font/google";
 import { ThemeToggle } from "@/src/components/ThemeToggle";
@@ -17,7 +18,12 @@ const sourceSerif = Source_Serif_4({
     display: "swap",
 });
 
+const SITE_URL =
+    process.env.NEXT_PUBLIC_SITE_URL || "https://nedirbunlar.com.tr";
+
 export const metadata: Metadata = {
+    // OG / canonical göreli URL'lerinin doğru çözülmesi için
+    metadataBase: new URL(SITE_URL),
     title: {
         default: "Ana Sayfa",
         template: "%s | Nedir Bunlar?",

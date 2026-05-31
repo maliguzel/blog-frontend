@@ -2,9 +2,11 @@
 // Server Component — "use client" YOK, veri server'da çekiliyor
 
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { adminDb } from "../lib/firebase-admin"
+import { adminDb } from "../lib/firebase-admin";
+import { createSlug } from "../lib/slug";
 import { MakaleFiltreleri } from "../components/MakaleFiltreleri";
 import { PaginationBar } from "../components/PaginationBar";
 
@@ -39,8 +41,10 @@ export type Makale = {
 };
 
 // ── Yardımcılar ───────────────────────────────────────────────
+// Tek slug kaynağı: slug.ts'teki createSlug (Türkçe harfleri çevirir →
+// badge renkleri ve kategori route'larıyla tutarlı)
 export function katSlug(k: string) {
-    return k.toLowerCase().replace(/[^a-z0-9]/g, "-");
+    return createSlug(k);
 }
 
 export function KategoriBadge({ kategori }: { kategori: string }) {
@@ -94,7 +98,6 @@ async function getMakaleler(params: {
     }
 
     // ── Normal pagination: sayfa N için cursor kullan ──────────
-    // Sayfa > 1 ise önceki sayfanın son dokümanını cursor olarak al
     if (sayfa > 1) {
         const cursorSnap = await q.limit((sayfa - 1) * SAYFA_BOYUTU).get();
         const lastDoc = cursorSnap.docs.at(-1);
@@ -128,7 +131,8 @@ function docToMakale(doc: FirebaseFirestore.QueryDocumentSnapshot): Makale {
 }
 
 // ── Makale Kartı (Server) ─────────────────────────────────────
-function MakaleKart({ m, index }: { m: Makale; index: number }) {
+// export: kategori sayfası da bu kartı kullanıyor
+export function MakaleKart({ m, index }: { m: Makale; index: number }) {
     const baslik = m.seo_baslik || m.baslik;
     const tarih = m.olusturulma_tarihi?.toLocaleDateString("tr-TR", {
         day: "numeric",
@@ -265,6 +269,11 @@ function OncikartMakale({ m }: { m: Makale }) {
     );
 }
 
+// ── Metadata: filtre URL'lerini tek canonical'a topla ─────────
+export async function generateMetadata(): Promise<Metadata> {
+    return { alternates: { canonical: "/" } };
+}
+
 // ── Ana Sayfa ─────────────────────────────────────────────────
 type SearchParams = {
     kategori?: string;
@@ -276,8 +285,6 @@ type SearchParams = {
 export default async function Home({
     searchParams,
 }: {
-    // Next.js 15: Promise<SearchParams>, Next.js 14: SearchParams
-    // Her ikisi de çalışır:
     searchParams: SearchParams | Promise<SearchParams>;
 }) {
     const params = await Promise.resolve(searchParams);

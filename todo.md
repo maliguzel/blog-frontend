@@ -2,160 +2,63 @@
 
 > Amaç: Google Trends → AI içerik → SEO trafik → otomatik büyüyen medya sistemi
 
+**Durum açıklaması:** `✅ kodda mevcut` = mevcut kodda çalışıyor ·
+`🔧 kısmen` = temeli var, eksik tarafı işaretli · `🆕` = kod incelemesinden eklenen yeni madde
+
 ---
 
 # 🔥 FAZ 1 — Kritik Sistemler (İlk Öncelik)
 
-## [x] 1. RSS Filtreleme ve Trend Temizleme
+## [x] 1. RSS Filtreleme ve Trend Temizleme — ✅ kodda mevcut
 
-### Problem
+Google Trends bazen Arapça içerik, alakasız trend, emoji/boş içerik, çok kısa sorgu döndürüyor.
 
-Google Trends bazen:
-
-- Arapça içerik
-- Alakasız trend
-- Emoji / boş içerik
-- Çok kısa saçma sorgular
-
-döndürüyor.
-
-### Yapılacaklar
-
-- [ ] Arapça unicode filtre
-- [ ] Türkçe/Latin dışı içerik temizliği
-- [ ] Emoji temizliği
-- [ ] Boş slug koruması
-- [ ] Çok kısa anlamsız trendleri ele
+- [x] Arapça/Latin dışı unicode filtre — `turkce_mi()`
+- [x] Türkçe/Latin dışı içerik temizliği — `turkce_mi()`
+- [x] Emoji temizliği — `re.sub` ile `create_slug` / `turkce_mi`
+- [x] Boş slug koruması — `create_slug` (min uzunluk + fallback)
+- [x] Çok kısa anlamsız trendleri ele — `turkce_mi` uzunluk kontrolü
 
 ---
 
-## [ ] 2. Trend Tipi Algılama Sistemi ⭐
+## [x] 2. Trend Tipi Algılama Sistemi ⭐ — ✅ kodda mevcut
 
-### Problem
+Her trende aynı şablon uygulanamaz (Djokovic vs hava durumu vs deprem vs altın).
 
-Her trend aynı değil:
-
-```text
-Novak Djokovic
-Karaman hava durumu
-Deprem
-Altın fiyatları
-Galatasaray Fenerbahçe
-```
-
-Hepsine aynı makale şablonu uygulanamaz.
-
-### Yapılacaklar
-
-- [ ] Gemini ile trend tipi belirleme
-- [ ] Akıllı sınıflandırma sistemi
-
-### Trend tipleri
-
-```text
-kisi
-hava_durumu
-spor
-deprem
-ekonomi
-dizi_film
-kurum_marka
-teknoloji
-genel_gundem
-```
-
-### İçerik davranışı
-
-#### kişi
-
-- Kimdir?
-- Kaç yaşında?
-- Kariyer
-- Neden gündemde?
-
-#### hava_durumu
-
-- Bugün nasıl?
-- Kaç derece?
-- Yağış var mı?
-- Haftalık tahmin
-
-#### spor
-
-- Son maç
-- Puan durumu
-- Hangi kanalda?
-- Muhtemel 11
-
-#### deprem
-
-- Nerede oldu?
-- Kaç büyüklüğünde?
-- Son gelişmeler
+- [x] Gemini ile trend tipi belirleme — `detect_trend_type()`
+- [x] Akıllı sınıflandırma — `TREND_TIPLERI` + `tip_format_kurallari()`
+- [x] Tipe özel içerik davranışı (kişi / hava / spor / deprem / ekonomi …)
+- [x] Tipe özel gerçek zamanlı veri çekme — `fetch_guncel_baglam()`
+      (hava → wttr.in, deprem → USGS, ekonomi → döviz, haber → Google News RSS)
 
 ---
 
-## [ ] 3. İçerik Boş Dönme Koruması
+## [x] 3. İçerik Boş Dönme Koruması — ✅ kodda mevcut
 
-### Yapılacaklar
-
-- [ ] Minimum karakter kontrolü
-- [ ] Retry mekanizması
-- [ ] Gemini response validasyonu
-- [ ] Başarısız üretimleri logla
-
-### Kural
-
-```python
-if len(text) < 500:
-    retry()
-```
+- [x] Minimum karakter kontrolü — `MIN_MAKALE_KARAKTER`
+- [x] Retry mekanizması — `generate_with_retry()`
+- [x] Gemini response validasyonu — uzunluk + `safe_json_parse`
+- [x] Başarısız üretimleri logla — `log_error()`
+- [ ] 🆕 **Safety-block ayrımı:** Gemini içeriği bloklarsa candidate dönmez,
+      `response.text` patlar. `response.candidates` kontrolü ekle → log'da
+      "blocked" mı "network" mü ayırt et (hata ayıklama kolaylaşır)
 
 ---
 
-## [ ] 4. Hata Loglama Sistemi
+## [x] 4. Hata Loglama Sistemi — ✅ kodda mevcut
 
-### Amaç
-
-Başarısız trendleri izlemek.
-
-### Yapılacaklar
-
-- [ ] `error.log` sistemi
-- [ ] Başarısız trend adı
-- [ ] Exception detayı
-- [ ] Timestamp ekleme
-
-Örnek:
-
-```text
-2026-05-27 15:23
-Trend: Novak Djokovic
-Hata: Gemini boş response
-```
+- [x] `logs/error.log` sistemi — `log_error()`
+- [x] Başarısız trend adı + Exception detayı + Timestamp
 
 ---
 
-## [ ] 5. TOC (İçindekiler) Sistemi ⭐
+## [ ] 5. TOC (İçindekiler) Sistemi ⭐ — 🔧 kısmen
 
-### Amaç
-
-- Uzun makalelerde UX artırmak
-- SEO snippet kazanmak
-- Hızlı gezinme sağlamak
-
-### Yapılacaklar
-
-- [ ] `##` markdown başlıklarını çek
-- [ ] Tıklanabilir TOC
-- [ ] Scroll anchor sistemi
+- [x] `##` markdown başlıklarını çek — `icerik_basliklari_cikar()` (`icerikler` alanı)
+- [x] Prompt'ta minimum başlık kuralı — "minimum 4 adet ## alt başlık"
+- [ ] Tıklanabilir TOC bileşeni (frontend)
+- [ ] Scroll anchor sistemi (anchor id'leri `create_slug` ile eşleştir)
 - [ ] Sticky mini navigation
-
-### Prompt kuralı
-
-```text
-Makale içinde minimum 3 adet ## alt başlık kullan.
-```
 
 ---
 
@@ -163,262 +66,147 @@ Makale içinde minimum 3 adet ## alt başlık kullan.
 
 ## [ ] 6. Akıllı Yardımcı SEO Sayfaları ⭐⭐⭐
 
-### Amaç
+Tek trend → çoklu trafik. (ör. `novak-djokovic`, `-kimdir`, `-kac-yasinda`, `-son-maci`)
 
-Tek trend → çoklu trafik
-
----
-
-### kişi örneği
-
-```text
-novak-djokovic
-novak-djokovic-kimdir
-novak-djokovic-kac-yasinda
-novak-djokovic-son-maci
-```
-
----
-
-### hava durumu örneği
-
-```text
-karaman-hava-durumu
-karaman-hava-durumu-yarin
-karaman-5-gunluk-hava-durumu
-karaman-yagis-var-mi
-```
-
----
-
-### spor örneği
-
-```text
-galatasaray-fenerbahce
-galatasaray-fenerbahce-ne-zaman
-galatasaray-fenerbahce-hangi-kanalda
-galatasaray-fenerbahce-muhtemel-11
-```
-
-### Yapılacaklar
-
-- [ ] Trend tipine göre SEO planı
+- [ ] Trend tipine göre SEO planı (her tip için alt-soru şablonları)
 - [ ] Yardımcı makale üretici
 - [ ] Duplicate engeli
 - [ ] Günlük limit sistemi
-- [ ] Aynı görseli reuse et
+- [ ] Aynı görseli reuse et (maliyet tasarrufu)
 
 ---
 
-## [ ] 7. Dinamik SEO Güçlendirme
+## [ ] 7. Dinamik SEO Güçlendirme — 🔧 kısmen
 
-### Yapılacaklar
-
-- [ ] Metadata API geliştirme
-- [ ] OpenGraph iyileştirme
-- [ ] Twitter Card
-- [ ] Canonical URL
-- [ ] Dynamic title/description
+- [x] Temel metadata + OpenGraph (`layout.tsx` — siteName, locale, template)
+- [ ] 🆕 **`metadataBase` ayarla** — yoksa OG/canonical göreli URL'ler uyarı verir,
+      bazı platformlar görseli çekmez
+- [ ] **Dinamik OG görseli** — `route.tsx` şu an her sayfaya statik "Nedir Bunlar"
+      basıyor. `opengraph-image.tsx`'e taşı, `ImageResponse` içine makale başlığı +
+      kategori dinamik bas
+- [ ] Twitter Card metadata
+- [ ] Canonical URL (her makale + kategori sayfası)
+- [ ] Dynamic title/description (makale `generateMetadata`)
 
 ---
 
-## [ ] 8. Schema Markup Sistemi
+## [ ] 8. Schema Markup Sistemi ⭐
 
-### Yapılacaklar
+Google rich result kazanmak için. (Önerimdeki "JSON-LD" maddesi buraya denk geliyor.)
 
-- [ ] FAQ Schema
-- [ ] Breadcrumb Schema
-- [ ] NewsArticle Schema
-
-### Amaç
-
-Google rich result kazanmak.
+- [ ] **NewsArticle / Article Schema** — `headline`, `datePublished`, `dateModified`,
+      `image`, `author` alanları Firestore'da zaten var → `<script type="application/ld+json">`
+- [ ] FAQ Schema (madde 9 ile birlikte)
+- [ ] Breadcrumb Schema (kategori sayfaları ile birlikte)
 
 ---
 
 ## [ ] 9. Otomatik FAQ Sistemi
 
-### Makale altında otomatik üret
+Makale altında otomatik üret (ör. "Novak Djokovic kaç yaşında?", "neden gündemde?").
 
-Örnek:
-
-```text
-Novak Djokovic kaç yaşında?
-Novak Djokovic neden gündemde?
-Novak Djokovic son maçı kaç kaç bitti?
-```
-
-### Yapılacaklar
-
-- [ ] Gemini FAQ üretici
-- [ ] JSON-LD schema ekleme
+- [ ] Gemini FAQ üretici (mevcut makale prompt'una ek JSON çıktısı olarak alınabilir)
+- [ ] FAQPage JSON-LD schema ekleme
 
 ---
 
-## [ ] 10. Duplicate Content Koruması
+## [ ] 10. Duplicate Content Koruması — 🔧 kısmen
 
-### Problem
-
-Benzer trendlerde aynı içerik oluşabilir.
-
-### Yapılacaklar
-
-- [ ] Similarity check
-- [ ] Aynı makaleyi tekrar üretmeme
-- [ ] Update existing article sistemi
+- [x] Slug + trend_hash ile temel tekrar kontrolü — `makale_zaten_var_mi()`
+- [ ] 🆕 **Skip yerine UPDATE:** Aynı konu birkaç gün trend olabilir. Var olan
+      makaleyi yeni `zengin_baglam` ile güncelle, `guncelleme_tarihi`'ni tazele
+      → SEO tazeliği yeni makaleden değerli
+- [ ] Similarity check (yakın trendlerde içerik benzerliği)
 
 ---
 
 # 🎨 FAZ 3 — Frontend Geliştirmeleri
 
-## [ ] 11. Kategori Menüsü
+## [x] 11. Kategori Menüsü — ✅ kodda mevcut
 
-### Ana sayfa filtreleme
-
-- [ ] Teknoloji
-- [ ] Ekonomi
-- [ ] Spor
-- [ ] Sağlık
-- [ ] Eğlence
+- [x] Filtreleme — `MakaleFiltreleri.tsx` (kategori pilleri + arama + sıralama + debounce)
+- [ ] 🆕 **Gerçek kategori route'ları** `/kategori/[slug]` — şu an filtre query param
+      ile (`?kategori=Spor`), `KategoriBadge` hiçbir yere link vermiyor. Query param
+      sayfaları zayıf indekslenir; ayrı route'lar her kategoriyi indekslenebilir
+      landing page yapar (sitemap'e de ekle)
 
 ---
 
-## [ ] 12. En Çok Okunanlar Bölümü ⭐
+## [ ] 12. En Çok Okunanlar Bölümü ⭐ — 🔧 kısmen
 
-### Ana sayfa modülü
-
-```text
-🔥 En Çok Okunanlar
-```
-
-### Firebase sorgusu
-
-```ts
-orderBy("okunma_sayisi", "desc");
-limit(5);
-```
+- [x] "Popüler" sıralaması mevcut — `orderBy("okunma_sayisi", "desc")`
+- [ ] Ana sayfada ayrı "🔥 En Çok Okunanlar" modülü (`limit(5)`)
 
 ---
 
 ## [ ] 13. Trend Ticker
 
-### Header altı
-
-```text
-🔥 Novak Djokovic
-🔥 Karaman hava durumu
-🔥 Bölgesel Amatör Lig
-```
-
-### Özellik
-
-Tıklanabilir trend barı.
+- [ ] Header altı tıklanabilir trend barı
 
 ---
 
 ## [ ] 14. Son Dakika Rozeti
 
-### Yeni trendlerde
-
-```text
-SON DAKİKA
-```
-
-CTR artırır.
+- [ ] Yeni trendlerde "SON DAKİKA" etiketi (CTR artırır)
 
 ---
 
-## [ ] 15. Benzer İçerikler Sistemi
+## [ ] 15. Benzer İçerikler Sistemi (İç Linkleme) ⭐ — 🆕 yüksek SEO etkisi
 
-### Şu an
+Şu an makaleler birbirine hiç link vermiyor — büyük SEO kaybı.
 
-Kategori bazlı.
-
-### Hedef
-
-Kategori + benzer konu
-
-Örnek:
-
-```text
-Novak Djokovic
-Carlos Alcaraz
-ATP sıralaması
-Roland Garros
-```
+- [ ] Otomasyonda kayıt anında aynı kategoriden 2-3 "ilgili makale" referansı tut
+- [ ] Makale altında göster (link juice + dwell time)
+- [ ] Hedef: kategori + benzer konu (Djokovic → Alcaraz → ATP sıralaması → Roland Garros)
 
 ---
 
-## [ ] 16. Okuma Sayacı
+## [x] 16. Okuma Sayacı — 🔧 kısmen (güvenlik açığı var)
 
-### Yapılacaklar
-
-- [ ] `increment(1)`
-- [ ] Bot koruması
-- [ ] Unique session mantığı
+- [x] `increment(1)` — `ReadCounter.tsx`
+- [ ] 🆕 **Sunucuya taşı (GÜVENLİK):** İstemci doğrudan `updateDoc(increment(1))`
+      çağırıyor → Firestore kuralları `okunma_sayisi`'na herkese yazma izni
+      gerektiriyor, kötüye açık. `/api/view` route handler aç, `adminDb` ile artır
+- [ ] Bot koruması + IP/cookie throttle
+- [ ] Unique session mantığı (her sayfa yenilemesi yeni sayım sorununu çöz)
 
 ---
 
-## [ ] 17. Next/Image Optimizasyonu
+## [ ] 17. Next/Image Optimizasyonu — 🔧 kısmen
 
-### Yapılacaklar
-
-- [ ] Görselleri optimize et
-- [ ] blur placeholder
-- [ ] lazy loading
+- [x] `next/image` kullanımı + `sizes` + `priority` (öne çıkan kart) — `page.tsx`
+- [ ] blur placeholder (`placeholder="blur"`)
+- [ ] `remotePatterns` kontrolü (Unsplash / Pexels / Wikipedia domainleri)
 
 ---
 
 # 🔍 FAZ 4 — SEO ve Google Dostu Site
 
-## [ ] 18. Sitemap Güçlendirme
+## [x] 18. Sitemap Güçlendirme — 🔧 kısmen
 
-### Yapılacaklar
-
-- [ ] Firebase sitemap
-- [ ] Priority sistemi
-- [ ] Trend makalelere öncelik
-
-```text
-500+ okunma → 0.95
-100+ okunma → 0.85
-Yeni → 0.75
-```
+- [x] Firebase sitemap — `sitemap.ts`
+- [ ] Priority sistemi (500+ okunma → 0.95, 100+ → 0.85, yeni → 0.75)
+- [ ] 🆕 **Admin SDK'ya geçir:** `sitemap.ts` client SDK (`firebase/firestore`)
+      kullanıyor, `page.tsx` ise `adminDb` → tutarsız. Sunucuda admin SDK
+      kuralları etkilemeden okur
 
 ---
 
-## [ ] 19. Robots + Canonical Düzeltme
+## [x] 19. Robots + Canonical Düzeltme — 🔧 kısmen
 
-### .env
-
-```env
-NEXT_PUBLIC_SITE_URL=https://siteadresi.com
-```
+- [x] `robots.ts` + `NEXT_PUBLIC_SITE_URL` env
+- [ ] Canonical URL'ler (madde 7 ile birlikte)
 
 ---
 
-## [ ] 20. IndexNow Entegrasyonu ⭐
+## [x] 20. IndexNow Entegrasyonu ⭐ — ✅ kodda mevcut
 
-### Amaç
-
-Makale yayınlanır yayınlanmaz Google/Bing bildirimi.
-
-### Yapılacaklar
-
-- [ ] IndexNow fonksiyonu
-- [ ] Makale sonrası otomatik ping
-
-API:
-
-```text
-api.indexnow.org
-```
+- [x] IndexNow fonksiyonu — `ping_indexnow()`
+- [x] Makale sonrası otomatik ping — `main()` içinde
 
 ---
 
 ## [ ] 21. Google Search Console
-
-### Yapılacaklar
 
 - [ ] Site doğrulama
 - [ ] sitemap.xml ekleme
@@ -428,133 +216,120 @@ api.indexnow.org
 
 ## [ ] 22. Analytics
 
-### Yapılacaklar
+- [ ] Google Analytics veya Vercel Analytics
+- [ ] Amaç: hangi trend çalışıyor görmek
 
-- [ ] Google Analytics
-      veya
-- [ ] Vercel Analytics
+---
 
-### Amaç
+# ⚡ FAZ 4.5 — Performans & Maliyet (🆕 yeni faz)
 
-Hangi trend çalışıyor görmek.
+Kod incelemesinden çıkan, listede olmayan ama site büyüdükçe kritikleşen maddeler.
+
+## [ ] 23. ISR / Cache 🆕 ⭐
+
+- [ ] Anasayfa tamamen dinamik → her ziyaret Firestore okuması
+- [ ] Filtresiz anasayfa + makale sayfalarına `export const revalidate = 600`
+- [ ] Otomasyon yeni makale basınca `revalidatePath` ile tetikle
+
+## [ ] 24. Firestore Okuma Maliyeti 🆕
+
+- [ ] **Arama:** `getMakaleler` arama yapınca TÜM koleksiyonu çekip Node'da
+      filtreliyor (2000 makale = 2000 okuma/arama). `arama_kelimeleri` array alanı +
+      `array-contains`, ya da büyürse Algolia/Typesense
+- [ ] **Pagination:** N. sayfa için `(sayfa-1)*12` doküman okuyor (offset problemi).
+      Son dokümanın tarihini URL'ye gömüp `startAfter` ile cursor pagination
+
+## [ ] 25. Gemini Maliyet Optimizasyonu 🆕
+
+- [ ] **Çağrıları birleştir:** `detect_trend_type` + `generate_article_metadata`
+      iki ayrı Flash çağrısı → tek prompt'ta JSON olarak ikisini birden iste
+      (maliyet/gecikme yarıya iner)
+- [ ] **Grounding kaynakları:** `gemini_text_with_search` arama yapıyor ama
+      `grounding_metadata` kaynak URL'leri atılıyor. Makale altına "Kaynaklar"
+      olarak bas → güven + E-E-A-T sinyali
+
+## [ ] 26. FOUC (Tema Titremesi) Düzelt 🆕
+
+- [ ] `ThemeToggle` temayı `useEffect`'te uyguluyor → kayıtlı "dark", sistemi açık
+      kullanıcıda ilk boyamada titreme. `<head>`'e blocking inline script koy,
+      class'ı boyamadan önce ekle
 
 ---
 
 # ☁️ FAZ 5 — Deploy ve Altyapı
 
-## [ ] 23. GitHub Repo
+## [ ] 27. GitHub Repo
 
-### Yapılacaklar
+- [ ] Private repo · .gitignore kontrolü · Firebase key gizleme (`firebase-key.json` asla commit'lenmesin)
 
-- [ ] Private repo
-- [ ] .gitignore kontrolü
-- [ ] Firebase key gizleme
+## [ ] 28. Vercel Deploy
 
----
+- [ ] Auto deploy · `git push` ile update
 
-## [ ] 24. Vercel Deploy
+## [ ] 29. Environment Variables
 
-### Yapılacaklar
+- [ ] Vercel env: `GEMINI_API_KEY`, `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_SITE_URL`,
+      `UNSPLASH_ACCESS_KEY`, `PEXELS_API_KEY`, `INDEXNOW_KEY`, `FIREBASE_KEY_PATH`
 
-- [ ] Auto deploy
-- [ ] `git push` ile update
+## [ ] 30. Google Cloud Functions / Scheduler ⭐
 
----
-
-## [ ] 25. Environment Variables
-
-### Vercel env
-
-```env
-GEMINI_API_KEY
-NEXT_PUBLIC_FIREBASE_API_KEY
-NEXT_PUBLIC_SITE_URL
-```
-
----
-
-## [ ] 26. Google Cloud Functions ⭐
-
-### Amaç
-
-Python script 7/24 otomatik çalışsın.
-
-### Yapılacaklar
-
-- [ ] Scheduler
-- [ ] Cron trigger
-- [ ] Auto trend fetch
+- [ ] Python script 7/24 otomatik çalışsın
+- [ ] Scheduler + Cron trigger + Auto trend fetch
+      (alternatif: GitHub Actions cron — daha basit/ücretsiz başlangıç)
 
 ---
 
 # 📧 FAZ 6 — İleri Seviye
 
-## [ ] 27. Newsletter
+## [ ] 31. Newsletter
 
-### Firebase collection
+- [ ] Firebase collection: email listesi · abonelik formu
 
-- [ ] email listesi
-- [ ] abonelik formu
+## [ ] 32. Admin Panel
 
----
+- [ ] trend onayla · blacklist · yayından kaldır · öne çıkar · manuel edit
 
-## [ ] 28. Admin Panel
+## [ ] 33. Otomatik Sosyal Medya
 
-### Özellikler
-
-- [ ] trend onayla
-- [ ] blacklist
-- [ ] yayından kaldır
-- [ ] öne çıkar
-- [ ] manuel edit
+- [ ] Makale yayınlanınca X / Facebook / Telegram otomatik paylaş
 
 ---
 
-## [ ] 29. Otomatik Sosyal Medya
+# 📅 7 Günlük Yol Haritası (güncellenmiş)
 
-### Makale yayınlanınca
+FAZ 1 büyük ölçüde bitmiş durumda — odak artık SEO derinliği, maliyet ve frontend.
 
-- [ ] X
-- [ ] Facebook
-- [ ] Telegram
+### Gün 1 — SEO temelleri (en yüksek trafik etkisi)
 
-otomatik paylaş.
+- [ ] NewsArticle JSON-LD schema (madde 8)
+- [ ] metadataBase + canonical + Twitter Card (madde 7)
 
----
+### Gün 2 — Dinamik sosyal + kategori
 
-# 📅 7 Günlük Yol Haritası
+- [ ] Dinamik OG görseli (madde 7)
+- [ ] `/kategori/[slug]` route'ları (madde 11)
 
-### Gün 1
+### Gün 3 — İç linkleme & ilgili içerik
 
-- [ ] RSS filtreleme
-- [ ] hata loglama
-- [ ] içerik boş dönme koruması
+- [ ] Benzer içerikler / iç linkleme (madde 15)
+- [ ] En çok okunanlar modülü (madde 12)
 
-### Gün 2
+### Gün 4 — Performans & maliyet
 
-- [ ] TOC sistemi
-- [ ] markdown standardı
+- [ ] ISR / revalidate (madde 23)
+- [ ] Okuma sayacını /api'ye taşı (madde 16)
 
-### Gün 3
+### Gün 5 — Yardımcı SEO sayfaları
 
-- [ ] trend tipi algılama
+- [ ] Trend tipine göre yardımcı sayfa üretici (madde 6)
+- [ ] Otomatik FAQ + FAQ schema (madde 9)
 
-### Gün 4
+### Gün 6 — Otomasyon kalitesi
 
-- [ ] yardımcı SEO sayfaları
+- [ ] Skip yerine update (madde 10)
+- [ ] Gemini çağrı birleştirme + grounding kaynakları (madde 25)
 
-### Gün 5
+### Gün 7 — Ölçüm & altyapı
 
-- [ ] schema + FAQ
-
-### Gün 6
-
-- [ ] en çok okunanlar
-- [ ] trend ticker
-- [ ] son dakika etiketi
-
-### Gün 7
-
-- [ ] IndexNow
-- [ ] Search Console
-- [ ] Analytics
+- [ ] Search Console + Analytics (madde 21, 22)
+- [ ] Cloud Functions / Scheduler ile 7/24 çalıştırma (madde 30)

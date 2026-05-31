@@ -179,3 +179,8 @@ body {
 .fade-up {
     animation: fadeUp 0.5s ease forwards;
 }
+
+.prose h2,
+.prose h3 {
+    scroll-margin-top: 6rem;
+}

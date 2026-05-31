@@ -1,29 +1,34 @@
+// src/components/ReadCounter.tsx
 "use client";
 
 import { useEffect, useRef } from "react";
-import { doc, increment, updateDoc } from "firebase/firestore";
-import { db } from "@/src/lib/firebase";
 
-interface ReadCounterProps {
-    docId: string; // Firestore belgesinin gerçek ID'si (slug DEĞİL)
-}
-
-export function ReadCounter({ docId }: ReadCounterProps) {
-    const hasRun = useRef(false);
+// Artık Firestore'a dokunmuyor; sadece /api/view'e haber veriyor.
+export function ReadCounter({ slug }: { slug: string }) {
+    const ran = useRef(false);
 
     useEffect(() => {
-        // Belge ID yoksa veya zaten çalıştıysa tekrar deneme
-        if (!docId || hasRun.current) return;
-        hasRun.current = true;
+        if (!slug || ran.current) return;
+        ran.current = true;
 
-        const ref = doc(db, "makaleler", docId);
-        updateDoc(ref, { okunma_sayisi: increment(1) }).catch((err) => {
-            // Sayaç kritik değil, sessizce başarısız ol
-            if (process.env.NODE_ENV === "development") {
-                console.warn("Okunma sayacı güncellenemedi:", err);
-            }
+        // Aynı sekme oturumunda tekrar istek atma (gereksiz trafiği önler)
+        const key = `nb_v_${slug}`;
+        try {
+            if (sessionStorage.getItem(key)) return;
+            sessionStorage.setItem(key, "1");
+        } catch {
+            /* sessionStorage kapalıysa devam et */
+        }
+
+        fetch("/api/view", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ slug }),
+            keepalive: true, // sayfadan hızlı çıkışta da gitsin
+        }).catch(() => {
+            /* sayaç kritik değil, sessizce geç */
         });
-    }, [docId]);
+    }, [slug]);
 
     return null;
 }

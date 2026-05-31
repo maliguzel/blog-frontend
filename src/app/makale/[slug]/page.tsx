@@ -1,31 +1,26 @@
 // src/app/makale/[slug]/page.tsx
-import {
-    collection,
-    query,
-    where,
-    getDocs,
-    orderBy,
-    limit,
-} from "firebase/firestore";
-import { db } from "@/src/lib/firebase";
-import { adminDb } from "@/src/lib/firebase-admin";
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
+import { adminDb } from "@/src/lib/firebase-admin";
+import { createSlug, cocukMetni } from "@/src/lib/slug";
 import { ReadCounter } from "@/src/components/ReadCounter";
 import { ShareButtons } from "@/src/components/ShareButtons";
-import type { Metadata } from "next";
+import { JsonLd } from "@/src/components/JsonLd";
+import { makaleSchema, faqSchema, breadcrumbSchema } from "@/src/lib/schema";
+
+export const revalidate = 3600; // sayfa 1 saat cache'lenir, sonra yenilenir
+export const dynamicParams = true; // yeni slug'lar ilk istekte üretilip cache'lenir
 
 const SITE_URL =
     process.env.NEXT_PUBLIC_SITE_URL || "https://nedirbunlar.com.tr";
 
-// ── Helpers ───────────────────────────────────────────────────
-function katSlug(k: string) {
-    return k.toLowerCase().replace(/[^a-z0-9]/g, "-");
-}
+// ── Tip ───────────────────────────────────────────────────────
 interface Makale {
     id: string;
+    slug: string;
     baslik: string;
     seo_baslik?: string;
     icerik: string;
@@ -34,68 +29,42 @@ interface Makale {
     gorsel_url: string;
     okuma_suresi: number;
     okunma_sayisi: number;
-    olusturulma_tarihi: any; // Firestore Timestamp için
-    guncelleme_tarihi: any;
-}
-function createHeadingId(text: string) {
-    return text
-        .toString()
-        .toLowerCase()
-        .replace(/[ç]/g, "c")
-        .replace(/[ğ]/g, "g")
-        .replace(/[ı]/g, "i")
-        .replace(/[ö]/g, "o")
-        .replace(/[ş]/g, "s")
-        .replace(/[ü]/g, "u")
-        .replace(/[^a-z0-9\s-]/g, "")
-        .replace(/\s+/g, "-")
-        .replace(/-+/g, "-")
-        .replace(/^-|-$/g, "");
+    olusturulma_tarihi: FirebaseFirestore.Timestamp | null;
+    guncelleme_tarihi: FirebaseFirestore.Timestamp | null;
+    sss?: { soru: string; cevap: string }[];
 }
 
+// ── TOC (İçindekiler) — anchor'lar createSlug ile, h2 id'leriyle eşleşir ─
 function extractToc(markdown: string) {
     if (!markdown) return [];
-
     return markdown
         .split("\n")
         .filter((line) => line.startsWith("## "))
         .map((line) => {
             const title = line.replace("## ", "").trim();
-            return {
-                title,
-                id: createHeadingId(title),
-            };
+            return { title, id: createSlug(title) };
         });
 }
 
-// 🔥 DÜZELTİLDİ: Artık belgenin Firestore ID'sini de döndürüyor
+// ── Veri çekme: doc ID = slug (otomasyon document(slug) ile kaydediyor) ─
 async function getMakale(slug: string): Promise<Makale | null> {
-    const q = query(collection(db, "makaleler"), where("slug", "==", slug));
-    const snap = await getDocs(q);
-    if (snap.empty) return null;
-
-    const doc = snap.docs[0];
-    const data = doc.data();
-
-    return {
-        id: doc.id,
-        ...data,
-    } as Makale; // TypeScript'e bunun bir "Makale" olduğunu söylüyoruz
+    const doc = await adminDb.collection("makaleler").doc(slug).get();
+    if (!doc.exists) return null;
+    return { id: doc.id, ...doc.data() } as Makale;
 }
 
 async function getIlgiliMakaleler(kategori: string, slugHaric: string) {
     if (!kategori) return [];
     try {
-        const q = query(
-            collection(db, "makaleler"),
-            where("kategori", "==", kategori),
-            orderBy("olusturulma_tarihi", "desc"),
-            limit(4),
-        );
-        const snap = await getDocs(q);
+        const snap = await adminDb
+            .collection("makaleler")
+            .where("kategori", "==", kategori)
+            .orderBy("olusturulma_tarihi", "desc")
+            .limit(4)
+            .get();
         return snap.docs
             .map((d) => d.data())
-            .filter((m: any) => m.slug !== slugHaric)
+            .filter((m) => m.slug !== slugHaric)
             .slice(0, 3);
     } catch {
         return [];
@@ -108,28 +77,22 @@ export async function generateMetadata({
 }: {
     params: { slug: string } | Promise<{ slug: string }>;
 }): Promise<Metadata> {
-    // Next.js 14 ve 15 uyumlu:
     const { slug } = await Promise.resolve(params);
 
     try {
         const doc = await adminDb.collection("makaleler").doc(slug).get();
-
-        if (!doc.exists) {
-            return { title: "Makale Bulunamadı" };
-        }
+        if (!doc.exists) return { title: "Makale Bulunamadı" };
 
         const d = doc.data()!;
         const baslik = d.seo_baslik || d.baslik || "Makale";
         const ozet = d.ozet || "";
         const gorsel = d.gorsel_url || "";
-
-        // OG image URL'si — /api/og?slug=... rotasına işaret eder
         const ogImageUrl = `${SITE_URL}/api/og?slug=${slug}`;
 
         return {
             title: baslik,
             description: ozet,
-
+            alternates: { canonical: `/makale/${slug}` },
             openGraph: {
                 title: baslik,
                 description: ozet,
@@ -138,19 +101,12 @@ export async function generateMetadata({
                 locale: "tr_TR",
                 type: "article",
                 images: [
-                    {
-                        url: ogImageUrl,
-                        width: 1200,
-                        height: 630,
-                        alt: baslik,
-                    },
-                    // Fallback olarak orijinal görsel
+                    { url: ogImageUrl, width: 1200, height: 630, alt: baslik },
                     ...(gorsel
                         ? [{ url: gorsel, width: 1080, height: 720 }]
                         : []),
                 ],
             },
-
             twitter: {
                 card: "summary_large_image",
                 title: baslik,
@@ -171,58 +127,39 @@ export default async function MakaleSayfasi({
 }) {
     const slug = (await params).slug;
     const makale = await getMakale(slug);
-
     if (!makale) notFound();
 
     const ilgiliMakaleler = await getIlgiliMakaleler(makale.kategori, slug);
-
     const baslik = makale.seo_baslik || makale.baslik;
     const toc = extractToc(makale.icerik);
 
-    const tarih = makale.olusturulma_tarihi?.toDate
-        ? makale.olusturulma_tarihi.toDate().toLocaleDateString("tr-TR", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-          })
-        : null;
+    const tarih = makale.olusturulma_tarihi
+        ?.toDate()
+        .toLocaleDateString("tr-TR", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+        });
 
-    const guncelleme = makale.guncelleme_tarihi?.toDate
-        ? makale.guncelleme_tarihi.toDate().toLocaleDateString("tr-TR", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-          })
-        : null;
-
-    // JSON-LD Article şeması
-    const jsonLd = {
-        "@context": "https://schema.org",
-        "@type": "Article",
-        headline: baslik,
-        description: makale.ozet || "",
-        image: makale.gorsel_url || "",
-        datePublished: makale.olusturulma_tarihi?.toDate?.()?.toISOString(),
-        dateModified: makale.guncelleme_tarihi?.toDate?.()?.toISOString(),
-        url: `${SITE_URL}/makale/${slug}`,
-        publisher: {
-            "@type": "Organization",
-            name: "Günün Olayları",
-            url: SITE_URL,
-        },
-        inLanguage: "tr",
-        articleSection: makale.kategori || "Genel",
-    };
+    const guncelleme = makale.guncelleme_tarihi
+        ?.toDate()
+        .toLocaleDateString("tr-TR", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+        });
 
     return (
         <>
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            <JsonLd
+                data={[
+                    makaleSchema(makale),
+                    breadcrumbSchema(makale),
+                    faqSchema(makale.sss), // sss yoksa otomatik atlanır
+                ]}
             />
 
-            {/* 🔥 DÜZELTİLDİ: Artık docId prop'u gönderiliyor */}
-            <ReadCounter docId={makale.id} />
+            <ReadCounter slug={makale.slug} />
 
             <article className="max-w-3xl mx-auto px-6 py-12 fade-up">
                 {/* Geri butonu */}
@@ -249,11 +186,13 @@ export default async function MakaleSayfasi({
                 {/* Kategori + okuma süresi */}
                 <div className="flex items-center gap-3 mb-4 flex-wrap">
                     {makale.kategori && (
-                        <span
-                            className={`kategori-badge kat-${katSlug(makale.kategori)}`}
-                        >
-                            {makale.kategori}
-                        </span>
+                        <Link href={`/kategori/${createSlug(makale.kategori)}`}>
+                            <span
+                                className={`kategori-badge kat-${createSlug(makale.kategori)} hover:opacity-80 transition-opacity`}
+                            >
+                                {makale.kategori}
+                            </span>
+                        </Link>
                     )}
                     {makale.okuma_suresi && (
                         <span className="text-xs text-[var(--muted)]">
@@ -268,10 +207,7 @@ export default async function MakaleSayfasi({
                 </div>
 
                 {/* Başlık */}
-                <h1
-                    className="font-[family-name:var(--font-display)] text-4xl md:text-5xl font-extrabold
-          leading-tight tracking-tight mb-4"
-                >
+                <h1 className="font-[family-name:var(--font-display)] text-4xl md:text-5xl font-extrabold leading-tight tracking-tight mb-4">
                     {baslik}
                 </h1>
 
@@ -352,26 +288,55 @@ export default async function MakaleSayfasi({
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                 </div>
 
-                {/* Makale metni */}
+                {/* Makale metni — h2/h3 id'leri createSlug ile (TOC eşleşir) */}
                 <div className="prose prose-lg lg:prose-xl max-w-none">
                     <ReactMarkdown
                         components={{
-                            h2: ({ children }) => {
-                                const text = Array.isArray(children)
-                                    ? children.join("")
-                                    : String(children);
-                                const id = createHeadingId(text);
-                                return (
-                                    <h2 id={id} className="scroll-mt-28">
-                                        {children}
-                                    </h2>
-                                );
-                            },
+                            h2: ({ children }) => (
+                                <h2
+                                    id={createSlug(cocukMetni(children))}
+                                    className="scroll-mt-28"
+                                >
+                                    {children}
+                                </h2>
+                            ),
+                            h3: ({ children }) => (
+                                <h3
+                                    id={createSlug(cocukMetni(children))}
+                                    className="scroll-mt-28"
+                                >
+                                    {children}
+                                </h3>
+                            ),
                         }}
                     >
                         {makale.icerik}
                     </ReactMarkdown>
                 </div>
+
+                {/* FAQ (varsa) — görsel akordeon */}
+                {makale.sss && makale.sss.length > 0 && (
+                    <section className="mt-12">
+                        <h2 className="font-[family-name:var(--font-display)] text-2xl font-bold mb-4">
+                            Sık Sorulan Sorular
+                        </h2>
+                        <div className="space-y-3">
+                            {makale.sss.map((x, i) => (
+                                <details
+                                    key={i}
+                                    className="rounded-xl border border-[var(--border)] bg-[var(--card-bg)] p-4"
+                                >
+                                    <summary className="font-semibold cursor-pointer">
+                                        {x.soru}
+                                    </summary>
+                                    <p className="mt-2 text-[var(--muted)] leading-relaxed">
+                                        {x.cevap}
+                                    </p>
+                                </details>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
                 {/* Alt paylaşım */}
                 <div className="mt-12 pt-8 border-t border-[var(--border)] flex items-center justify-between flex-wrap gap-4">
@@ -389,14 +354,14 @@ export default async function MakaleSayfasi({
                     <section className="mt-16">
                         <h2 className="font-[family-name:var(--font-display)] text-2xl font-bold mb-6 flex items-center gap-2">
                             <span
-                                className={`kategori-badge kat-${katSlug(makale.kategori)}`}
+                                className={`kategori-badge kat-${createSlug(makale.kategori)}`}
                             >
                                 {makale.kategori}
                             </span>
                             İlgili Makaleler
                         </h2>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                            {ilgiliMakaleler.map((m: any) => (
+                            {ilgiliMakaleler.map((m) => (
                                 <Link
                                     key={m.slug}
                                     href={`/makale/${m.slug}`}
