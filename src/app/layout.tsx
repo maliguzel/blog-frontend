@@ -22,14 +22,28 @@ const SITE_URL =
     process.env.NEXT_PUBLIC_SITE_URL || "https://nedirbunlar.com.tr";
 
 export const metadata: Metadata = {
-    // OG / canonical göreli URL'lerinin doğru çözülmesi için
     metadataBase: new URL(SITE_URL),
+
     title: {
         default: "Ana Sayfa",
         template: "%s | Nedir Bunlar?",
     },
+
     description:
         "Türkiye'nin gündemindeki trendler, olaylar ve merak edilenler - Nedir Bunlar? ile derinlemesine analiz.",
+
+    robots: {
+        index: true,
+        follow: true,
+        googleBot: {
+            index: true,
+            follow: true,
+            "max-image-preview": "large",
+            "max-video-preview": -1,
+            "max-snippet": -1,
+        },
+    },
+
     openGraph: {
         siteName: "Nedir Bunlar?",
         locale: "tr_TR",
