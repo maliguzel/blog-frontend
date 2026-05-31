@@ -8,12 +8,14 @@ import {
     limit,
 } from "firebase/firestore";
 import { db } from "@/src/lib/firebase";
+import { adminDb } from "@/src/lib/firebase-admin";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { ReadCounter } from "@/src/components/ReadCounter";
 import { ShareButtons } from "@/src/components/ShareButtons";
+import type { Metadata } from "next";
 
 const SITE_URL =
     process.env.NEXT_PUBLIC_SITE_URL || "https://nedirbunlar.com.tr";
@@ -104,49 +106,61 @@ async function getIlgiliMakaleler(kategori: string, slugHaric: string) {
 export async function generateMetadata({
     params,
 }: {
-    params: Promise<{ slug: string }>;
-}) {
-    const slug = (await params).slug;
-    const makale = await getMakale(slug);
+    params: { slug: string } | Promise<{ slug: string }>;
+}): Promise<Metadata> {
+    // Next.js 14 ve 15 uyumlu:
+    const { slug } = await Promise.resolve(params);
 
-    if (!makale) {
+    try {
+        const doc = await adminDb.collection("makaleler").doc(slug).get();
+
+        if (!doc.exists) {
+            return { title: "Makale Bulunamadı" };
+        }
+
+        const d = doc.data()!;
+        const baslik = d.seo_baslik || d.baslik || "Makale";
+        const ozet = d.ozet || "";
+        const gorsel = d.gorsel_url || "";
+
+        // OG image URL'si — /api/og?slug=... rotasına işaret eder
+        const ogImageUrl = `${SITE_URL}/api/og?slug=${slug}`;
+
         return {
-            title: "Makale Bulunamadı",
-            description: "Aradığınız makale mevcut değil.",
+            title: baslik,
+            description: ozet,
+
+            openGraph: {
+                title: baslik,
+                description: ozet,
+                url: `${SITE_URL}/makale/${slug}`,
+                siteName: "Nedir Bunlar?",
+                locale: "tr_TR",
+                type: "article",
+                images: [
+                    {
+                        url: ogImageUrl,
+                        width: 1200,
+                        height: 630,
+                        alt: baslik,
+                    },
+                    // Fallback olarak orijinal görsel
+                    ...(gorsel
+                        ? [{ url: gorsel, width: 1080, height: 720 }]
+                        : []),
+                ],
+            },
+
+            twitter: {
+                card: "summary_large_image",
+                title: baslik,
+                description: ozet,
+                images: [ogImageUrl],
+            },
         };
+    } catch {
+        return { title: "Nedir Bunlar?" };
     }
-
-    const baslik = makale.seo_baslik || makale.baslik;
-    const toc = extractToc(makale.icerik);
-    const aciklama =
-        makale.ozet ||
-        (makale.icerik
-            ? makale.icerik
-                  .replace(/[#*`_]/g, "")
-                  .slice(0, 160)
-                  .trim() + "…"
-            : `${baslik} hakkında güncel bir analiz.`);
-
-    return {
-        title: baslik,
-        description: aciklama,
-        openGraph: {
-            title: baslik,
-            description: aciklama,
-            images: makale.gorsel_url
-                ? [{ url: makale.gorsel_url, width: 1080, alt: baslik }]
-                : [],
-            type: "article",
-            locale: "tr_TR",
-            publishedTime: makale.olusturulma_tarihi?.toDate?.()?.toISOString(),
-        },
-        twitter: {
-            card: "summary_large_image",
-            title: baslik,
-            description: aciklama,
-            images: makale.gorsel_url ? [makale.gorsel_url] : [],
-        },
-    };
 }
 
 // ── Sayfa ─────────────────────────────────────────────────────

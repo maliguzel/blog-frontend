@@ -1,26 +1,31 @@
-"use client";
+// src/app/page.tsx
+// Server Component — "use client" YOK, veri server'da çekiliyor
 
-import { useEffect, useState, useMemo } from "react";
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
-import { db } from "@/src/lib/firebase";
+import { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { adminDb } from "../lib/firebase-admin"
+import { MakaleFiltreleri } from "../components/MakaleFiltreleri";
+import { PaginationBar } from "../components/PaginationBar";
 
-// ── Helpers ───────────────────────────────────────────────────
-function katSlug(k: string) {
-    return k.toLowerCase().replace(/[^a-z0-9]/g, "-");
-}
+// ── Sabitler ──────────────────────────────────────────────────
+const SAYFA_BOYUTU = 12;
 
-function KategoriBadge({ kategori }: { kategori: string }) {
-    return (
-        <span className={`kategori-badge kat-${katSlug(kategori)}`}>
-            {kategori}
-        </span>
-    );
-}
+export const KATEGORILER = [
+    "Spor",
+    "Teknoloji",
+    "Siyaset",
+    "Ekonomi",
+    "Eğlence",
+    "Sağlık",
+    "Bilim",
+    "Dünya",
+    "Kültür-Sanat",
+    "Diğer",
+];
 
 // ── Tipler ────────────────────────────────────────────────────
-type Makale = {
+export type Makale = {
     id: string;
     slug: string;
     baslik: string;
@@ -30,36 +35,106 @@ type Makale = {
     kategori?: string;
     okuma_suresi?: number;
     okunma_sayisi?: number;
-    olusturulma_tarihi?: { toDate: () => Date } | null;
+    olusturulma_tarihi?: Date | null;
 };
 
-type SortKey = "yeni" | "populer";
+// ── Yardımcılar ───────────────────────────────────────────────
+export function katSlug(k: string) {
+    return k.toLowerCase().replace(/[^a-z0-9]/g, "-");
+}
 
-// ── Skeleton ──────────────────────────────────────────────────
-function SkeletonKart() {
+export function KategoriBadge({ kategori }: { kategori: string }) {
     return (
-        <div className="bg-[var(--card-bg)] rounded-2xl overflow-hidden border border-[var(--border)]">
-            <div className="skeleton h-52 w-full" />
-            <div className="p-5 space-y-3">
-                <div className="skeleton h-3 w-20" />
-                <div className="skeleton h-5 w-3/4" />
-                <div className="skeleton h-4 w-full" />
-                <div className="skeleton h-4 w-2/3" />
-            </div>
-        </div>
+        <span className={`kategori-badge kat-${katSlug(kategori)}`}>
+            {kategori}
+        </span>
     );
 }
 
-// ── Makale Kartı ──────────────────────────────────────────────
+// ── Veri Çekme ────────────────────────────────────────────────
+async function getMakaleler(params: {
+    kategori?: string;
+    siralama?: string;
+    arama?: string;
+    sayfa: number;
+}): Promise<{ makaleler: Makale[]; sonrakiSayfaVar: boolean }> {
+    const { kategori, siralama, arama, sayfa } = params;
+
+    let q: FirebaseFirestore.Query = adminDb.collection("makaleler");
+
+    // Kategori filtresi
+    if (kategori && kategori !== "Tümü") {
+        q = q.where("kategori", "==", kategori);
+    }
+
+    // Sıralama
+    const sortField =
+        siralama === "populer" ? "okunma_sayisi" : "olusturulma_tarihi";
+    q = q.orderBy(sortField, "desc");
+
+    // ── Arama: tüm dokümanları çekip Node'da filtrele ──────────
+    if (arama?.trim()) {
+        const aramaLower = arama.toLowerCase();
+        const snap = await q.get();
+
+        const filtered = snap.docs
+            .map((doc) => docToMakale(doc))
+            .filter(
+                (m) =>
+                    m.baslik?.toLowerCase().includes(aramaLower) ||
+                    m.seo_baslik?.toLowerCase().includes(aramaLower) ||
+                    m.ozet?.toLowerCase().includes(aramaLower),
+            );
+
+        const baslangic = (sayfa - 1) * SAYFA_BOYUTU;
+        return {
+            makaleler: filtered.slice(baslangic, baslangic + SAYFA_BOYUTU),
+            sonrakiSayfaVar: filtered.length > sayfa * SAYFA_BOYUTU,
+        };
+    }
+
+    // ── Normal pagination: sayfa N için cursor kullan ──────────
+    // Sayfa > 1 ise önceki sayfanın son dokümanını cursor olarak al
+    if (sayfa > 1) {
+        const cursorSnap = await q.limit((sayfa - 1) * SAYFA_BOYUTU).get();
+        const lastDoc = cursorSnap.docs.at(-1);
+        if (lastDoc) q = q.startAfter(lastDoc);
+    }
+
+    // 1 fazla çekerek sonraki sayfa var mı anla
+    const snap = await q.limit(SAYFA_BOYUTU + 1).get();
+    const sonrakiSayfaVar = snap.docs.length > SAYFA_BOYUTU;
+
+    return {
+        makaleler: snap.docs.slice(0, SAYFA_BOYUTU).map(docToMakale),
+        sonrakiSayfaVar,
+    };
+}
+
+function docToMakale(doc: FirebaseFirestore.QueryDocumentSnapshot): Makale {
+    const d = doc.data();
+    return {
+        id: doc.id,
+        slug: d.slug,
+        baslik: d.baslik,
+        seo_baslik: d.seo_baslik,
+        gorsel_url: d.gorsel_url,
+        ozet: d.ozet,
+        kategori: d.kategori,
+        okuma_suresi: d.okuma_suresi,
+        okunma_sayisi: d.okunma_sayisi,
+        olusturulma_tarihi: d.olusturulma_tarihi?.toDate?.() ?? null,
+    };
+}
+
+// ── Makale Kartı (Server) ─────────────────────────────────────
 function MakaleKart({ m, index }: { m: Makale; index: number }) {
     const baslik = m.seo_baslik || m.baslik;
-    const tarih = m.olusturulma_tarihi?.toDate
-        ? m.olusturulma_tarihi.toDate().toLocaleDateString("tr-TR", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-          })
-        : null;
+    const tarih = m.olusturulma_tarihi?.toLocaleDateString("tr-TR", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+    });
 
     return (
         <Link
@@ -67,7 +142,7 @@ function MakaleKart({ m, index }: { m: Makale; index: number }) {
             className="group bg-[var(--card-bg)] rounded-2xl overflow-hidden border border-[var(--border)]
                  hover:border-[var(--accent)] hover:shadow-xl transition-all duration-300
                  fade-up flex flex-col"
-            style={{ animationDelay: `${index * 70}ms` }}
+            style={{ animationDelay: `${index * 60}ms` }}
         >
             <div className="relative h-48 overflow-hidden bg-[var(--border)]">
                 <Image
@@ -103,7 +178,7 @@ function MakaleKart({ m, index }: { m: Makale; index: number }) {
                             <span>· {m.okuma_suresi} dk okuma</span>
                         )}
                     </span>
-                    {m.okunma_sayisi != null && m.okunma_sayisi > 0 && (
+                    {!!m.okunma_sayisi && m.okunma_sayisi > 0 && (
                         <span className="flex items-center gap-1">
                             <svg
                                 className="w-3.5 h-3.5"
@@ -133,69 +208,96 @@ function MakaleKart({ m, index }: { m: Makale; index: number }) {
     );
 }
 
+// ── Öne Çıkan Kart (Server) ───────────────────────────────────
+function OncikartMakale({ m }: { m: Makale }) {
+    const baslik = m.seo_baslik || m.baslik;
+    return (
+        <Link
+            href={`/makale/${m.slug}`}
+            className="group mb-8 flex flex-col md:flex-row bg-[var(--card-bg)] rounded-2xl
+                 overflow-hidden border border-[var(--border)] hover:border-[var(--accent)]
+                 hover:shadow-2xl transition-all duration-300 fade-up"
+        >
+            <div className="relative md:w-3/5 h-64 md:h-auto min-h-[280px] bg-[var(--border)]">
+                <Image
+                    src={m.gorsel_url}
+                    alt={baslik}
+                    fill
+                    priority
+                    sizes="(max-width: 768px) 100vw, 60vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+            </div>
+            <div className="md:w-2/5 p-8 flex flex-col justify-center gap-3">
+                <span className="text-xs uppercase tracking-widest text-[var(--accent)] font-semibold">
+                    Öne Çıkan
+                </span>
+                {m.kategori && <KategoriBadge kategori={m.kategori} />}
+                <h2
+                    className="font-[family-name:var(--font-display)] text-3xl font-extrabold
+                               leading-tight group-hover:text-[var(--accent)] transition-colors"
+                >
+                    {baslik}
+                </h2>
+                {m.ozet && (
+                    <p className="text-sm text-[var(--muted)] line-clamp-3 leading-relaxed">
+                        {m.ozet}
+                    </p>
+                )}
+                <span className="text-sm text-[var(--muted)] flex items-center gap-2 mt-2">
+                    Okumaya devam et
+                    <svg
+                        className="w-4 h-4 group-hover:translate-x-1 transition-transform"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                        />
+                    </svg>
+                </span>
+            </div>
+        </Link>
+    );
+}
+
 // ── Ana Sayfa ─────────────────────────────────────────────────
-export default function Home() {
-    const [makaleler, setMakaleler] = useState<Makale[]>([]);
-    const [yukleniyor, setYukleniyor] = useState(true);
-    const [hata, setHata] = useState<string | null>(null);
-    const [aktifKat, setAktifKat] = useState<string>("Tümü");
-    const [arama, setArama] = useState("");
-    const [siralama, setSiralama] = useState<SortKey>("yeni");
+type SearchParams = {
+    kategori?: string;
+    siralama?: string;
+    sayfa?: string;
+    arama?: string;
+};
 
-    useEffect(() => {
-        async function getMakaleler() {
-            try {
-                const q = query(
-                    collection(db, "makaleler"),
-                    orderBy("olusturulma_tarihi", "desc"),
-                );
-                const snap = await getDocs(q);
-                setMakaleler(
-                    snap.docs.map(
-                        (doc) => ({ id: doc.id, ...doc.data() }) as Makale,
-                    ),
-                );
-            } catch (e) {
-                console.error(e);
-                setHata("Makaleler yüklenirken bir hata oluştu.");
-            } finally {
-                setYukleniyor(false);
-            }
-        }
-        getMakaleler();
-    }, []);
+export default async function Home({
+    searchParams,
+}: {
+    // Next.js 15: Promise<SearchParams>, Next.js 14: SearchParams
+    // Her ikisi de çalışır:
+    searchParams: SearchParams | Promise<SearchParams>;
+}) {
+    const params = await Promise.resolve(searchParams);
+    const kategori = params.kategori || "Tümü";
+    const siralama = params.siralama || "yeni";
+    const arama = params.arama || "";
+    const sayfa = Math.max(1, parseInt(params.sayfa || "1", 10));
 
-    // Benzersiz kategoriler
-    const kategoriler = useMemo(() => {
-        const set = new Set(
-            makaleler.map((m) => m.kategori).filter(Boolean) as string[],
-        );
-        return ["Tümü", ...Array.from(set).sort()];
-    }, [makaleler]);
+    const { makaleler, sonrakiSayfaVar } = await getMakaleler({
+        kategori,
+        siralama,
+        arama,
+        sayfa,
+    });
 
-    // Filtrele + sırala
-    const gorunenler = useMemo(() => {
-        let list = [...makaleler];
-        if (aktifKat !== "Tümü")
-            list = list.filter((m) => m.kategori === aktifKat);
-        if (arama.trim()) {
-            const q = arama.toLowerCase();
-            list = list.filter(
-                (m) =>
-                    m.baslik.toLowerCase().includes(q) ||
-                    m.seo_baslik?.toLowerCase().includes(q) ||
-                    m.ozet?.toLowerCase().includes(q),
-            );
-        }
-        if (siralama === "populer")
-            list.sort(
-                (a, b) => (b.okunma_sayisi ?? 0) - (a.okunma_sayisi ?? 0),
-            );
-        return list;
-    }, [makaleler, aktifKat, arama, siralama]);
-
-    const featured = gorunenler[0];
-    const rest = gorunenler.slice(1);
+    // Filtre/arama/sıralama aktifse öne çıkan gösterme
+    const filtreSiz =
+        !arama && kategori === "Tümü" && siralama === "yeni" && sayfa === 1;
+    const featured = filtreSiz ? makaleler[0] : null;
+    const grid = filtreSiz ? makaleler.slice(1) : makaleler;
 
     return (
         <div className="max-w-6xl mx-auto px-6 py-12">
@@ -215,180 +317,45 @@ export default function Home() {
                 </p>
             </div>
 
-            {/* Araç çubuğu: Arama + Sıralama */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-6">
-                <div className="relative flex-1">
-                    <svg
-                        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted)]"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                        />
-                    </svg>
-                    <input
-                        type="text"
-                        placeholder="Makale ara..."
-                        value={arama}
-                        onChange={(e) => setArama(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--border)]
-                       bg-[var(--card-bg)] text-sm outline-none
-                       focus:border-[var(--accent)] transition-colors"
-                    />
-                </div>
-                <div className="flex rounded-xl border border-[var(--border)] overflow-hidden text-sm">
-                    {(["yeni", "populer"] as SortKey[]).map((s) => (
-                        <button
-                            key={s}
-                            onClick={() => setSiralama(s)}
-                            className={`px-4 py-2.5 transition-colors ${
-                                siralama === s
-                                    ? "bg-[var(--accent)] text-white"
-                                    : "bg-[var(--card-bg)] text-[var(--muted)] hover:text-[var(--foreground)]"
-                            }`}
-                        >
-                            {s === "yeni" ? "🕐 En Yeni" : "🔥 Popüler"}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Kategori filtreleri */}
-            {!yukleniyor && kategoriler.length > 1 && (
-                <div className="flex flex-wrap gap-2 mb-8">
-                    {kategoriler.map((kat) => (
-                        <button
-                            key={kat}
-                            onClick={() => setAktifKat(kat)}
-                            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${
-                                aktifKat === kat
-                                    ? "bg-[var(--accent)] text-white border-[var(--accent)]"
-                                    : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)] bg-[var(--card-bg)]"
-                            }`}
-                        >
-                            {kat}
-                        </button>
-                    ))}
-                </div>
-            )}
-
-            {/* Hata */}
-            {hata && (
-                <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-6 text-center">
-                    {hata}
-                </div>
-            )}
-
-            {/* Skeleton */}
-            {yukleniyor && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {Array.from({ length: 6 }).map((_, i) => (
-                        <SkeletonKart key={i} />
-                    ))}
-                </div>
-            )}
+            {/* Filtreler — Client Component (useSearchParams kullanır) */}
+            <Suspense fallback={<div className="h-24" />}>
+                <MakaleFiltreleri
+                    kategoriler={KATEGORILER}
+                    aktifKategori={kategori}
+                    aktifSiralama={siralama}
+                    aktifArama={arama}
+                />
+            </Suspense>
 
             {/* Boş durum */}
-            {!yukleniyor && !hata && gorunenler.length === 0 && (
+            {makaleler.length === 0 && (
                 <div className="text-center py-24 text-[var(--muted)]">
                     <p className="text-6xl mb-4">{arama ? "🔍" : "📭"}</p>
                     <p className="text-xl font-semibold">
                         {arama ? "Sonuç bulunamadı." : "Henüz makale yok."}
                     </p>
-                    {arama && (
-                        <button
-                            onClick={() => setArama("")}
-                            className="mt-4 text-sm text-[var(--accent)] hover:underline"
-                        >
-                            Aramayı temizle
-                        </button>
-                    )}
                 </div>
             )}
 
-            {/* İçerik */}
-            {!yukleniyor && gorunenler.length > 0 && (
-                <>
-                    {/* Öne çıkan */}
-                    {featured &&
-                        !arama &&
-                        aktifKat === "Tümü" &&
-                        siralama === "yeni" && (
-                            <Link
-                                href={`/makale/${featured.slug}`}
-                                className="group mb-8 flex flex-col md:flex-row bg-[var(--card-bg)] rounded-2xl
-                         overflow-hidden border border-[var(--border)] hover:border-[var(--accent)]
-                         hover:shadow-2xl transition-all duration-300 fade-up"
-                            >
-                                <div className="relative md:w-3/5 h-64 md:h-auto min-h-[280px] bg-[var(--border)]">
-                                    <Image
-                                        src={featured.gorsel_url}
-                                        alt={
-                                            featured.seo_baslik ||
-                                            featured.baslik
-                                        }
-                                        fill
-                                        priority
-                                        sizes="(max-width: 768px) 100vw, 60vw"
-                                        className="object-cover group-hover:scale-105 transition-transform duration-500"
-                                    />
-                                </div>
-                                <div className="md:w-2/5 p-8 flex flex-col justify-center gap-3">
-                                    <span className="text-xs uppercase tracking-widest text-[var(--accent)] font-semibold">
-                                        Öne Çıkan
-                                    </span>
-                                    {featured.kategori && (
-                                        <KategoriBadge
-                                            kategori={featured.kategori}
-                                        />
-                                    )}
-                                    <h2
-                                        className="font-[family-name:var(--font-display)] text-3xl font-extrabold
-                               leading-tight group-hover:text-[var(--accent)] transition-colors"
-                                    >
-                                        {featured.seo_baslik || featured.baslik}
-                                    </h2>
-                                    {featured.ozet && (
-                                        <p className="text-sm text-[var(--muted)] line-clamp-3 leading-relaxed">
-                                            {featured.ozet}
-                                        </p>
-                                    )}
-                                    <span className="text-sm text-[var(--muted)] flex items-center gap-2 mt-2">
-                                        Okumaya devam et
-                                        <svg
-                                            className="w-4 h-4 group-hover:translate-x-1 transition-transform"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M9 5l7 7-7 7"
-                                            />
-                                        </svg>
-                                    </span>
-                                </div>
-                            </Link>
-                        )}
+            {/* Öne çıkan */}
+            {featured && <OncikartMakale m={featured} />}
 
-                    {/* Izgara */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {(arama || aktifKat !== "Tümü" || siralama !== "yeni"
-                            ? gorunenler
-                            : rest
-                        ).map((m, i) => (
-                            <MakaleKart key={m.id} m={m} index={i} />
-                        ))}
-                    </div>
-                </>
+            {/* Izgara */}
+            {grid.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {grid.map((m, i) => (
+                        <MakaleKart key={m.id} m={m} index={i} />
+                    ))}
+                </div>
             )}
+
+            {/* Pagination */}
+            <Suspense fallback={null}>
+                <PaginationBar
+                    mevcutSayfa={sayfa}
+                    sonrakiSayfaVar={sonrakiSayfaVar}
+                />
+            </Suspense>
         </div>
     );
 }
