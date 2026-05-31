@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Playfair_Display, Source_Serif_4 } from "next/font/google";
 import { ThemeToggle } from "@/src/components/ThemeToggle";
 import "./globals.css";
+import Script from "next/script";
 
 const playfair = Playfair_Display({
     variable: "--font-display",
@@ -85,6 +86,20 @@ export default function RootLayout({
                         olarak üretilmiştir.
                     </p>
                 </footer>
+                <Script
+                    src="https://www.googletagmanager.com/gtag/js?id=G-EN7ZGL36XC"
+                    strategy="afterInteractive"
+                />
+
+                <Script id="google-analytics" strategy="afterInteractive">
+                    {`
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-EN7ZGL36XC');
+  `}
+                </Script>
             </body>
         </html>
     );

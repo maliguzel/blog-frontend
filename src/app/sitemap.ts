@@ -8,21 +8,39 @@ const SITE_URL =
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     let articleUrls: MetadataRoute.Sitemap = [];
+    let categoryUrls: MetadataRoute.Sitemap = [];
 
     try {
         const snap = await getDocs(collection(db, "makaleler"));
-        articleUrls = snap.docs.map((doc) => {
-            const data = doc.data();
-            return {
-                url: `${SITE_URL}/makale/${data.slug}`,
-                lastModified:
-                    data.guncelleme_tarihi?.toDate?.() ||
-                    data.olusturulma_tarihi?.toDate?.() ||
-                    new Date(),
-                changeFrequency: "monthly" as const,
-                priority: 0.8,
-            };
-        });
+
+        const kategoriler = new Set<string>();
+
+        articleUrls = snap.docs
+            .map((doc) => {
+                const data = doc.data();
+
+                if (data.kategoriSlug) {
+                    kategoriler.add(data.kategoriSlug);
+                }
+
+                return {
+                    url: `${SITE_URL}/makale/${data.slug}`,
+                    lastModified:
+                        data.guncelleme_tarihi?.toDate?.() ||
+                        data.olusturulma_tarihi?.toDate?.() ||
+                        new Date(),
+                    changeFrequency: "weekly" as const,
+                    priority: 0.8,
+                };
+            })
+            .filter((item) => item.url);
+
+        categoryUrls = Array.from(kategoriler).map((slug) => ({
+            url: `${SITE_URL}/kategori/${slug}`,
+            lastModified: new Date(),
+            changeFrequency: "daily" as const,
+            priority: 0.7,
+        }));
     } catch (e) {
         console.error("Sitemap oluşturulurken hata:", e);
     }
@@ -34,6 +52,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             changeFrequency: "daily",
             priority: 1,
         },
+
+        ...categoryUrls,
         ...articleUrls,
     ];
 }
