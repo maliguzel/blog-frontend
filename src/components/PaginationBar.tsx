@@ -16,30 +16,59 @@ export function PaginationBar({ mevcutSayfa, sonrakiSayfaVar }: Props) {
         const params = new URLSearchParams(searchParams.toString());
         params.set("sayfa", page.toString());
         router.push(`?${params.toString()}`);
+        // Sayfanın başına scroll
+        window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
     return (
-        <div className="flex justify-center gap-4 mt-12">
+        <div className="flex justify-center items-center gap-4 mt-16 mb-8">
+            {/* Önceki Buton */}
             <button
                 onClick={() => goToPage(mevcutSayfa - 1)}
                 disabled={mevcutSayfa === 1}
-                className="px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--card-bg)]
-                           disabled:opacity-50 disabled:cursor-not-allowed
-                           hover:bg-[var(--accent)] hover:text-white transition-colors"
+                className={`group px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-200
+                    flex items-center gap-2 border-2
+                    ${
+                        mevcutSayfa === 1
+                            ? "opacity-40 cursor-not-allowed border-[var(--border)] text-[var(--muted)]"
+                            : "border-[var(--border)] text-[var(--foreground)] hover:border-[var(--accent)] hover:text-[var(--accent)] hover:shadow-lg hover:bg-[var(--accent-light)]/50"
+                    }`}
             >
-                ← Önceki
+                <span className="group-hover:-translate-x-1 transition-transform">
+                    ←
+                </span>
+                Önceki
             </button>
-            <span className="px-4 py-2 text-[var(--muted)]">
-                Sayfa {mevcutSayfa}
-            </span>
+
+            {/* Sayfa Göstergesi */}
+            <div className="relative min-w-fit">
+                <div className="absolute inset-0 bg-gradient-to-r from-[var(--accent)]/10 to-[var(--accent-light)]/10 rounded-full blur"></div>
+                <div className="relative px-6 py-3 rounded-full bg-[var(--card-bg)] border border-[var(--accent)]/30">
+                    <span className="font-bold text-[var(--foreground)]">
+                        {mevcutSayfa}
+                    </span>
+                    <span className="text-[var(--muted)] text-sm ml-2">
+                        . sayfa
+                    </span>
+                </div>
+            </div>
+
+            {/* Sonraki Buton */}
             <button
                 onClick={() => goToPage(mevcutSayfa + 1)}
                 disabled={!sonrakiSayfaVar}
-                className="px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--card-bg)]
-                           disabled:opacity-50 disabled:cursor-not-allowed
-                           hover:bg-[var(--accent)] hover:text-white transition-colors"
+                className={`group px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-200
+                    flex items-center gap-2 border-2
+                    ${
+                        !sonrakiSayfaVar
+                            ? "opacity-40 cursor-not-allowed border-[var(--border)] text-[var(--muted)]"
+                            : "border-[var(--border)] text-[var(--foreground)] hover:border-[var(--accent)] hover:text-[var(--accent)] hover:shadow-lg hover:bg-[var(--accent-light)]/50"
+                    }`}
             >
-                Sonraki →
+                Sonraki
+                <span className="group-hover:translate-x-1 transition-transform">
+                    →
+                </span>
             </button>
         </div>
     );

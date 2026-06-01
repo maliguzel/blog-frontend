@@ -5,7 +5,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { adminDb } from "@/src/lib/firebase-admin";
 import { createSlug } from "@/src/lib/slug";
-// MakaleKart'ı anasayfadan alıyoruz — page.tsx'te `export` eklemen gerekiyor (aşağıda)
 import { KATEGORILER, MakaleKart, type Makale } from "@/src/app/page";
 import { PaginationBar } from "@/src/components/PaginationBar";
 
@@ -13,7 +12,6 @@ const SITE_URL =
     process.env.NEXT_PUBLIC_SITE_URL || "https://nedirbunlar.com.tr";
 const SAYFA_BOYUTU = 12;
 
-// slug -> kategori adı (createSlug ile ters arama → breadcrumb ile aynı slug)
 function slugToKategori(slug: string): string | null {
     return KATEGORILER.find((k) => createSlug(k) === slug) ?? null;
 }
@@ -47,7 +45,6 @@ async function getKategoriMakaleleri(
         siralama === "populer" ? "okunma_sayisi" : "olusturulma_tarihi";
     q = q.orderBy(sortField, "desc");
 
-    // Cursor pagination (anasayfadaki mantıkla aynı)
     if (sayfa > 1) {
         const cursorSnap = await q.limit((sayfa - 1) * SAYFA_BOYUTU).get();
         const lastDoc = cursorSnap.docs.at(-1);
@@ -65,7 +62,6 @@ async function getKategoriMakaleleri(
 type Params = { slug: string };
 type Search = { sayfa?: string; siralama?: string };
 
-// Bilinen 10 kategoriyi statik üret (geçerli slug listesi)
 export function generateStaticParams() {
     return KATEGORILER.map((k) => ({ slug: createSlug(k) }));
 }
@@ -117,74 +113,205 @@ export default async function KategoriSayfasi({
         sayfa,
     );
 
+    // Kategori emoji'leri
+    const categoryEmojis: Record<string, string> = {
+        Spor: "⚽",
+        Teknoloji: "💻",
+        Siyaset: "🗳️",
+        Ekonomi: "📊",
+        Eğlence: "🎬",
+        Sağlık: "⚕️",
+        Bilim: "🔬",
+        Dünya: "🌍",
+        "Kültür-Sanat": "🎨",
+        Diğer: "📌",
+    };
+
+    const emoji = categoryEmojis[kategori] || "📌";
+
     return (
-        <div className="max-w-6xl mx-auto px-6 py-12">
-            {/* Breadcrumb */}
-            <nav className="text-sm text-[var(--muted)] mb-6 flex items-center gap-2">
+        <div className="max-w-7xl mx-auto px-6 py-12 lg:py-16">
+            {/* ── Modern Breadcrumb ── */}
+            <nav className="text-sm mb-8 flex items-center gap-2 fade-up">
                 <Link
                     href="/"
-                    className="hover:text-[var(--accent)] transition-colors"
+                    className="text-[var(--muted)] hover:text-[var(--accent)] transition-colors duration-200 flex items-center gap-1"
                 >
+                    <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M3 12l2-3m0 0l7-4 7 4M5 9v10a1 1 0 001 1h12a1 1 0 001-1V9m-9 11l4-4m-4 4L9 9"
+                        />
+                    </svg>
                     Ana Sayfa
                 </Link>
-                <span>/</span>
-                <span className="text-[var(--foreground)]">{kategori}</span>
+                <span className="text-[var(--border)]">/</span>
+                <span className="text-[var(--foreground)] font-semibold">
+                    {emoji} {kategori}
+                </span>
             </nav>
 
-            {/* Başlık */}
-            <div className="mb-8 border-b border-[var(--border)] pb-6">
-                <span className={`kategori-badge kat-${createSlug(kategori)}`}>
-                    {kategori}
-                </span>
-                <h1 className="font-[family-name:var(--font-display)] text-4xl md:text-5xl font-extrabold tracking-tight mt-3 leading-none">
-                    {kategori}{" "}
-                    <span className="text-[var(--accent)]">Haberleri</span>
-                </h1>
+            {/* ── Hero Section ── */}
+            <div className="mb-14 rounded-3xl overflow-hidden border border-[var(--border)] group">
+                {/* Dekoratif Arka Plan */}
+                <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)]/8 via-transparent to-[var(--accent-light)]/12 pointer-events-none"></div>
+
+                {/* İçerik */}
+                <div className="relative bg-gradient-to-br from-[var(--card-bg)] to-[var(--accent-light)]/20 px-8 md:px-12 lg:px-16 py-12 md:py-16">
+                    <div className="space-y-4 max-w-3xl">
+                        {/* Badge */}
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 w-fit">
+                            <span className="text-2xl">{emoji}</span>
+                            <span className="font-[family-name:var(--font-display)] font-bold text-sm uppercase tracking-widest text-[var(--accent)]">
+                                Kategori
+                            </span>
+                        </div>
+
+                        {/* Başlık */}
+                        <div>
+                            <h1 className="font-[family-name:var(--font-display)] text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.1] mb-4">
+                                {kategori}{" "}
+                                <span className="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-hover)] bg-clip-text text-transparent">
+                                    Haberleri
+                                </span>
+                            </h1>
+
+                            {/* Açıklama */}
+                            <p className="text-lg text-[var(--muted)] max-w-2xl leading-relaxed">
+                                {kategori} kategorisindeki güncel trendler,
+                                olaylar ve merak edilenler hakkında
+                                derinlemesine analiz ve köşeli bakış.
+                            </p>
+                        </div>
+
+                        {/* İstatistik */}
+                        <div className="flex flex-wrap gap-6 pt-6 border-t border-[var(--border)]">
+                            <div className="flex flex-col">
+                                <span className="text-3xl font-bold text-[var(--accent)]">
+                                    {makaleler.length}+
+                                </span>
+                                <span className="text-xs text-[var(--muted)] uppercase tracking-wider font-medium">
+                                    Bu Sayfada
+                                </span>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-3xl font-bold text-[var(--accent)]">
+                                    📰
+                                </span>
+                                <span className="text-xs text-[var(--muted)] uppercase tracking-wider font-medium">
+                                    Güncel
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {/* Sıralama (server-side linkler, client'a gerek yok) */}
-            <div className="flex rounded-xl border border-[var(--border)] overflow-hidden text-sm w-fit mb-8">
-                {(["yeni", "populer"] as const).map((s) => (
-                    <Link
-                        key={s}
-                        href={`/kategori/${slug}${s === "populer" ? "?siralama=populer" : ""}`}
-                        className={`px-4 py-2.5 transition-colors ${
-                            siralama === s
-                                ? "bg-[var(--accent)] text-white"
-                                : "bg-[var(--card-bg)] text-[var(--muted)] hover:text-[var(--foreground)]"
-                        }`}
-                    >
-                        {s === "yeni" ? "🕐 En Yeni" : "🔥 Popüler"}
-                    </Link>
-                ))}
-            </div>
-
-            {/* Boş durum */}
-            {makaleler.length === 0 && (
-                <div className="text-center py-24 text-[var(--muted)]">
-                    <p className="text-6xl mb-4">📭</p>
-                    <p className="text-xl font-semibold">
-                        Bu kategoride henüz makale yok.
+            {/* ── Sıralama Kontrolleri ── */}
+            <div
+                className="flex items-center justify-between mb-10 gap-4 flex-wrap fade-up"
+                style={{ animationDelay: "100ms" }}
+            >
+                <div>
+                    <p className="text-xs uppercase tracking-widest font-bold text-[var(--muted)] mb-3">
+                        Sırala
                     </p>
+                    <div className="flex rounded-xl border border-[var(--border)] overflow-hidden bg-[var(--card-bg)] shrink-0">
+                        {(
+                            [
+                                { value: "yeni", label: "🕐 En Yeni" },
+                                { value: "populer", label: "🔥 Popüler" },
+                            ] as const
+                        ).map((s) => (
+                            <Link
+                                key={s.value}
+                                href={`/kategori/${slug}${
+                                    s.value === "populer"
+                                        ? "?siralama=populer"
+                                        : ""
+                                }${sayfa > 1 ? `&sayfa=${sayfa}` : ""}`}
+                                className={`px-5 py-3 text-sm font-semibold transition-all duration-200
+                                    ${
+                                        siralama === s.value
+                                            ? "bg-gradient-to-r from-[var(--accent)] to-[var(--accent-hover)] text-white shadow-lg"
+                                            : "text-[var(--muted)] hover:text-[var(--foreground)]"
+                                    }`}
+                            >
+                                {s.label}
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Makale Sayısı */}
+                <div className="text-right">
+                    <p className="text-xs text-[var(--muted)] uppercase tracking-widest font-medium">
+                        Toplam Makale
+                    </p>
+                    <p className="text-3xl font-bold text-[var(--accent)]">
+                        {makaleler.length > 0 ? `${makaleler.length}+` : "0"}
+                    </p>
+                </div>
+            </div>
+
+            {/* ── Boş Durum ── */}
+            {makaleler.length === 0 && (
+                <div className="text-center py-32">
+                    <p className="text-8xl mb-6 drop-shadow">📭</p>
+                    <h2 className="text-3xl font-bold text-[var(--foreground)] mb-3">
+                        Henüz Makale Yok
+                    </h2>
+                    <p className="text-[var(--muted)] mb-8 max-w-md mx-auto">
+                        Bu kategoride yakında ilginç içerikler eklenecektir.
+                        Daha sonra tekrar ziyaret edin.
+                    </p>
+                    <Link
+                        href="/"
+                        className="inline-flex items-center gap-2 bg-gradient-to-r from-[var(--accent)] to-[var(--accent-hover)] text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-shadow"
+                    >
+                        Ana Sayfaya Dön
+                        <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 5l7 7-7 7"
+                            />
+                        </svg>
+                    </Link>
                 </div>
             )}
 
-            {/* Izgara */}
+            {/* ── Makale Izgarası ── */}
             {makaleler.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
                     {makaleler.map((m, i) => (
                         <MakaleKart key={m.id} m={m} index={i} />
                     ))}
                 </div>
             )}
 
-            {/* Pagination — pathname'i korur, sadece ?sayfa ekler */}
-            <Suspense fallback={null}>
-                <PaginationBar
-                    mevcutSayfa={sayfa}
-                    sonrakiSayfaVar={sonrakiSayfaVar}
-                />
-            </Suspense>
+            {/* ── Pagination ── */}
+            {makaleler.length > 0 && (
+                <Suspense fallback={null}>
+                    <PaginationBar
+                        mevcutSayfa={sayfa}
+                        sonrakiSayfaVar={sonrakiSayfaVar}
+                    />
+                </Suspense>
+            )}
         </div>
     );
 }

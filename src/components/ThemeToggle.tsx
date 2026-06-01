@@ -26,18 +26,41 @@ export function ThemeToggle() {
         localStorage.setItem("theme", next ? "dark" : "light");
     };
 
-    // Hidrasyon uyuşmazlığını önle
-    if (!mounted) return <div className="w-9 h-9" />;
+    if (!mounted) return <div className="w-10 h-10" />;
 
     return (
         <button
             onClick={toggle}
             aria-label={dark ? "Aydınlık moda geç" : "Karanlık moda geç"}
-            className="w-9 h-9 rounded-full flex items-center justify-center
-                 border border-[var(--border)] bg-[var(--card-bg)]
-                 hover:border-[var(--accent)] transition-all text-base"
+            className="group relative w-10 h-10 rounded-full flex items-center justify-center
+                 border-2 border-[var(--border)] bg-[var(--card-bg)]
+                 hover:border-[var(--accent)] transition-all duration-300
+                 hover:shadow-lg hover:scale-110"
         >
-            {dark ? "☀️" : "🌙"}
+            {/* Glow Effect */}
+            <div className="absolute inset-0 rounded-full bg-[var(--accent)] opacity-0 group-hover:opacity-20 blur transition-opacity"></div>
+
+            {/* Icon with transition */}
+            <div className="relative text-lg">
+                <span
+                    className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ${
+                        dark
+                            ? "opacity-100 rotate-0"
+                            : "opacity-0 rotate-90 pointer-events-none"
+                    }`}
+                >
+                    ☀️
+                </span>
+                <span
+                    className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ${
+                        dark
+                            ? "opacity-0 -rotate-90 pointer-events-none"
+                            : "opacity-100 rotate-0"
+                    }`}
+                >
+                    🌙
+                </span>
+            </div>
         </button>
     );
 }

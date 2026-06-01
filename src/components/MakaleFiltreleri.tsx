@@ -21,11 +21,8 @@ export function MakaleFiltreleri({
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const [isPending, startTransition] = useTransition();
-
-    // Arama için local state (debounce için)
     const [aramaInput, setAramaInput] = useState(aktifArama);
 
-    // URL param güncelleme — sayfa her zaman 1'e sıfırlanır
     const updateParams = useCallback(
         (updates: Record<string, string | null>) => {
             const params = new URLSearchParams(searchParams.toString());
@@ -43,7 +40,6 @@ export function MakaleFiltreleri({
                 }
             });
 
-            // Filtre değişince sayfayı sıfırla
             params.delete("sayfa");
 
             startTransition(() => {
@@ -57,7 +53,7 @@ export function MakaleFiltreleri({
         [router, pathname, searchParams],
     );
 
-    // Arama debounce — 400ms bekle, sonra URL'yi güncelle
+    // Arama debounce
     useEffect(() => {
         const timer = setTimeout(() => {
             if (aramaInput !== aktifArama) {
@@ -69,33 +65,38 @@ export function MakaleFiltreleri({
 
     return (
         <div
-            className={`mb-8 transition-opacity ${isPending ? "opacity-60" : "opacity-100"}`}
+            className={`mb-12 transition-opacity duration-300 ${
+                isPending ? "opacity-60 pointer-events-none" : "opacity-100"
+            }`}
         >
-            {/* Arama + Sıralama */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-4">
-                {/* Arama */}
-                <div className="relative flex-1">
-                    <svg
-                        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted)]"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                        />
-                    </svg>
+            {/* Arama ve Sıralama */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-8">
+                {/* Arama Inputu */}
+                <div className="relative flex-1 group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted)] group-focus-within:text-[var(--accent)] transition-colors">
+                        <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                            />
+                        </svg>
+                    </div>
                     <input
                         type="text"
                         placeholder="Makale ara..."
                         value={aramaInput}
                         onChange={(e) => setAramaInput(e.target.value)}
-                        className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-[var(--border)]
-                               bg-[var(--card-bg)] text-sm outline-none
-                               focus:border-[var(--accent)] transition-colors"
+                        className="w-full pl-12 pr-10 py-3 rounded-xl border border-[var(--border)]
+                               bg-[var(--card-bg)] text-sm font-medium outline-none
+                               focus:border-[var(--accent)] focus:shadow-lg
+                               transition-all duration-200"
                     />
                     {aramaInput && (
                         <button
@@ -103,58 +104,84 @@ export function MakaleFiltreleri({
                                 setAramaInput("");
                                 updateParams({ arama: null });
                             }}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)]
-                                   hover:text-[var(--foreground)] transition-colors text-lg leading-none"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--muted)]
+                                   hover:text-[var(--foreground)] transition-colors text-xl leading-none"
                             aria-label="Aramayı temizle"
                         >
-                            ×
+                            ✕
                         </button>
                     )}
                 </div>
 
-                {/* Sıralama */}
-                <div className="flex rounded-xl border border-[var(--border)] overflow-hidden text-sm shrink-0">
-                    {(["yeni", "populer"] as const).map((s) => (
+                {/* Sıralama Butonları */}
+                <div className="flex rounded-xl border border-[var(--border)] overflow-hidden bg-[var(--card-bg)] shrink-0">
+                    {(
+                        [
+                            { value: "yeni", label: "🕐 En Yeni", emoji: "🕐" },
+                            {
+                                value: "populer",
+                                label: "🔥 Popüler",
+                                emoji: "🔥",
+                            },
+                        ] as const
+                    ).map((sort) => (
                         <button
-                            key={s}
-                            onClick={() => updateParams({ siralama: s })}
-                            className={`px-4 py-2.5 transition-colors ${
-                                aktifSiralama === s
-                                    ? "bg-[var(--accent)] text-white"
-                                    : "bg-[var(--card-bg)] text-[var(--muted)] hover:text-[var(--foreground)]"
-                            }`}
+                            key={sort.value}
+                            onClick={() =>
+                                updateParams({ siralama: sort.value })
+                            }
+                            className={`flex-1 px-4 py-3 text-sm font-semibold transition-all duration-200 
+                                flex items-center justify-center gap-2
+                                ${
+                                    aktifSiralama === sort.value
+                                        ? "bg-gradient-to-r from-[var(--accent)] to-[var(--accent-hover)] text-white shadow-md"
+                                        : "text-[var(--muted)] hover:text-[var(--foreground)]"
+                                }`}
+                            title={sort.label}
                         >
-                            {s === "yeni" ? "🕐 En Yeni" : "🔥 Popüler"}
+                            <span className="text-base">{sort.emoji}</span>
+                            <span className="hidden sm:inline">
+                                {sort.label.split(" ")[1]}
+                            </span>
                         </button>
                     ))}
                 </div>
             </div>
 
-            {/* Kategori pilleri */}
-            <div className="flex flex-wrap gap-2">
-                <button
-                    onClick={() => updateParams({ kategori: null })}
-                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${
-                        aktifKategori === "Tümü"
-                            ? "bg-[var(--accent)] text-white border-[var(--accent)]"
-                            : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)] bg-[var(--card-bg)]"
-                    }`}
-                >
-                    Tümü
-                </button>
-                {kategoriler.map((kat) => (
+            {/* Kategori Pilleri */}
+            <div className="space-y-3">
+                <p className="text-xs uppercase tracking-widest font-bold text-[var(--muted)]">
+                    Kategoriler
+                </p>
+                <div className="flex flex-wrap gap-2">
                     <button
-                        key={kat}
-                        onClick={() => updateParams({ kategori: kat })}
-                        className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${
-                            aktifKategori === kat
-                                ? "bg-[var(--accent)] text-white border-[var(--accent)]"
-                                : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)] bg-[var(--card-bg)]"
-                        }`}
+                        onClick={() => updateParams({ kategori: null })}
+                        className={`px-4 py-2.5 rounded-full text-sm font-semibold transition-all duration-200
+                            border-2 inline-flex items-center gap-2
+                            ${
+                                aktifKategori === "Tümü"
+                                    ? "bg-gradient-to-r from-[var(--accent)] to-[var(--accent-hover)] text-white border-[var(--accent)] shadow-lg"
+                                    : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]"
+                            }`}
                     >
-                        {kat}
+                        <span>📋</span> Tümü
                     </button>
-                ))}
+                    {kategoriler.map((kat) => (
+                        <button
+                            key={kat}
+                            onClick={() => updateParams({ kategori: kat })}
+                            className={`px-4 py-2.5 rounded-full text-sm font-semibold transition-all duration-200
+                                border-2 hover:shadow-md
+                                ${
+                                    aktifKategori === kat
+                                        ? "bg-gradient-to-r from-[var(--accent)] to-[var(--accent-hover)] text-white border-[var(--accent)] shadow-lg"
+                                        : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]"
+                                }`}
+                        >
+                            {kat}
+                        </button>
+                    ))}
+                </div>
             </div>
         </div>
     );

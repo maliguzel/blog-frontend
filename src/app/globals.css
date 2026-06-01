@@ -1,90 +1,132 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-/* ── Renk sistemi ──────────────────────────────────────────── */
+
+/* ── Renk Sistemi (Geliştirilmiş & Modern) ─────────────────── */
 :root {
     --background: #fafaf8;
-    --foreground: #1a1a1a;
-    --accent: #e85d26;
-    --accent-light: #fff0ea;
+    --foreground: #1a1a18;
+    --accent: #d97706;
+    --accent-hover: #f59e0b;
+    --accent-light: #fef3e2;
+    --accent-dark: #b45309;
     --card-bg: #ffffff;
-    --border: #e8e6e1;
-    --muted: #6b6b6b;
+    --border: #e8e6e0;
+    --muted: #78746f;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --error: #ef4444;
+
+    /* Geliştirilmiş Gölgeler */
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+    --shadow-sm:
+        0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+    --shadow-md:
+        0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+    --shadow-lg:
+        0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+    --shadow-xl:
+        0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.15);
+
+    /* Gradyanlar */
+    --gradient-accent: linear-gradient(
+        135deg,
+        var(--accent) 0%,
+        var(--accent-hover) 100%
+    );
 }
 
 @media (prefers-color-scheme: dark) {
     :root:not(.light) {
-        --background: #111110;
-        --foreground: #f0ede8;
-        --accent: #ff7340;
-        --accent-light: #2a1a10;
-        --card-bg: #1c1b19;
-        --border: #2e2d2a;
-        --muted: #9a9690;
+        --background: #0f0e0a;
+        --foreground: #faf9f7;
+        --accent: #fbbf24;
+        --accent-hover: #fcd34d;
+        --accent-light: #3a2d0f;
+        --accent-dark: #f59e0b;
+        --card-bg: #1a1815;
+        --border: #2a2825;
+        --muted: #a49f99;
+        --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+        --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.4);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.6);
+        --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.7);
+        --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.8);
     }
 }
 
 .dark {
-    --background: #111110;
-    --foreground: #f0ede8;
-    --accent: #ff7340;
-    --accent-light: #2a1a10;
-    --card-bg: #1c1b19;
-    --border: #2e2d2a;
-    --muted: #9a9690;
+    --background: #0f0e0a;
+    --foreground: #faf9f7;
+    --accent: #fbbf24;
+    --accent-hover: #fcd34d;
+    --accent-light: #3a2d0f;
+    --accent-dark: #f59e0b;
+    --card-bg: #1a1815;
+    --border: #2a2825;
+    --muted: #a49f99;
 }
 
 .light {
     --background: #fafaf8;
-    --foreground: #1a1a1a;
-    --accent: #e85d26;
-    --accent-light: #fff0ea;
+    --foreground: #1a1a18;
+    --accent: #d97706;
+    --accent-hover: #f59e0b;
+    --accent-light: #fef3e2;
+    --accent-dark: #b45309;
     --card-bg: #ffffff;
-    --border: #e8e6e1;
-    --muted: #6b6b6b;
+    --border: #e8e6e0;
+    --muted: #78746f;
 }
 
 * {
     box-sizing: border-box;
 }
 
+html {
+    scroll-behavior: smooth;
+}
+
 body {
     background: var(--background);
     color: var(--foreground);
-    font-family: var(--font-body), Georgia, serif;
+    font-family: var(--font-body), "Segoe UI", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     transition:
-        background 0.2s,
-        color 0.2s;
+        background 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+        color 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ── Kategori renkleri ──────────────────────────────────────── */
+/* ── Kategori Renkleri (Canlı & Konsistent) ─────────────────── */
 .kat-spor {
-    --kat-color: #2563eb;
+    --kat-color: #3b82f6;
 }
 .kat-teknoloji {
-    --kat-color: #7c3aed;
+    --kat-color: #8b5cf6;
 }
 .kat-siyaset {
-    --kat-color: #dc2626;
+    --kat-color: #ef4444;
 }
 .kat-ekonomi {
-    --kat-color: #ca8a04;
+    --kat-color: #eab308;
 }
 .kat-eglence {
-    --kat-color: #db2777;
+    --kat-color: #ec4899;
 }
 .kat-saglik {
-    --kat-color: #16a34a;
+    --kat-color: #10b981;
 }
 .kat-bilim {
-    --kat-color: #0891b2;
+    --kat-color: #06b6d4;
 }
 .kat-dunya {
-    --kat-color: #9333ea;
+    --kat-color: #a855f7;
 }
 .kat-kultur-sanat {
-    --kat-color: #ea580c;
+    --kat-color: #d97706;
 }
 .kat-diger {
     --kat-color: #6b7280;
@@ -93,18 +135,28 @@ body {
 .kategori-badge {
     display: inline-flex;
     align-items: center;
-    padding: 2px 10px;
-    border-radius: 999px;
-    font-size: 0.7rem;
-    font-weight: 600;
+    gap: 4px;
+    padding: 6px 14px;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    background: color-mix(in srgb, var(--kat-color) 15%, transparent);
+    background: color-mix(in srgb, var(--kat-color) 12%, transparent);
     color: var(--kat-color);
     border: 1px solid color-mix(in srgb, var(--kat-color) 30%, transparent);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: var(--font-display);
 }
 
-/* ── Prose overrides ────────────────────────────────────────── */
+.kategori-badge:hover {
+    background: color-mix(in srgb, var(--kat-color) 20%, transparent);
+    border-color: var(--kat-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--kat-color) 20%, transparent);
+}
+
+/* ── Prose (Makale Tipografisi) ────────────────────────────── */
 .prose {
     --tw-prose-body: var(--foreground);
     --tw-prose-headings: var(--foreground);
@@ -120,29 +172,81 @@ body {
 }
 
 .prose p {
-    line-height: 1.85;
-    margin-bottom: 1.4em;
-}
-.prose h2 {
-    font-family: var(--font-display), Georgia, serif;
-    font-size: 1.7rem;
-    margin-top: 2.5em;
-    letter-spacing: -0.02em;
-}
-.prose h3 {
-    font-family: var(--font-display), Georgia, serif;
-    font-size: 1.25rem;
-    margin-top: 2em;
-}
-.prose blockquote {
-    border-left: 3px solid var(--accent);
-    background: var(--accent-light);
-    padding: 1rem 1.5rem;
-    border-radius: 0 8px 8px 0;
-    font-style: italic;
+    line-height: 1.9;
+    margin-bottom: 1.75em;
+    font-size: 1.05rem;
 }
 
-/* ── Skeleton shimmer ───────────────────────────────────────── */
+.prose h2 {
+    font-family: var(--font-display), Georgia, serif;
+    font-size: 2rem;
+    font-weight: 800;
+    margin-top: 3em;
+    margin-bottom: 1.2em;
+    letter-spacing: -0.02em;
+    border-left: 5px solid var(--accent);
+    padding-left: 1.25rem;
+    color: var(--foreground);
+}
+
+.prose h3 {
+    font-family: var(--font-display), Georgia, serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-top: 2.2em;
+    margin-bottom: 0.8em;
+    letter-spacing: -0.01em;
+}
+
+.prose blockquote {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-light);
+    padding: 1.2rem 1.8rem;
+    border-radius: 0 12px 12px 0;
+    font-style: italic;
+    font-size: 1.05rem;
+    margin: 2em 0;
+    color: var(--muted);
+}
+
+.prose img {
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg);
+    max-width: 100%;
+    height: auto;
+}
+
+.prose a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: all 0.25s ease;
+}
+
+.prose a:hover {
+    border-bottom-color: var(--accent);
+    color: var(--accent-hover);
+}
+
+.prose code {
+    background: var(--accent-light);
+    color: var(--accent-dark);
+    padding: 0.25em 0.5em;
+    border-radius: 4px;
+    font-family: "Fira Code", "Monaco", monospace;
+    font-size: 0.9em;
+}
+
+.prose pre {
+    background: var(--card-bg) !important;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem !important;
+    overflow-x: auto;
+    box-shadow: var(--shadow-md);
+}
+
+/* ── Skeleton Shimmer (Geliştirilmiş) ──────────────────────── */
 @keyframes shimmer {
     0% {
         background-position: -600px 0;
@@ -156,19 +260,19 @@ body {
     background: linear-gradient(
         90deg,
         var(--border) 25%,
-        color-mix(in srgb, var(--border) 60%, var(--background)) 50%,
+        color-mix(in srgb, var(--border) 70%, var(--background)) 50%,
         var(--border) 75%
     );
     background-size: 600px 100%;
-    animation: shimmer 1.4s infinite linear;
-    border-radius: 6px;
+    animation: shimmer 2s infinite;
+    border-radius: 12px;
 }
 
-/* ── Sayfa geçişi ───────────────────────────────────────────── */
+/* ── Animasyonlar ──────────────────────────────────────────── */
 @keyframes fadeUp {
     from {
         opacity: 0;
-        transform: translateY(16px);
+        transform: translateY(24px);
     }
     to {
         opacity: 1;
@@ -176,11 +280,206 @@ body {
     }
 }
 
-.fade-up {
-    animation: fadeUp 0.5s ease forwards;
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes glow {
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 20%, transparent);
+    }
+    50% {
+        box-shadow: 0 0 0 12px color-mix(in srgb, var(--accent) 0%, transparent);
+    }
+}
+
+@keyframes floatUp {
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+.fade-up {
+    animation: fadeUp 0.6s cubic-bezier(0.2, 0.9, 0.4, 1.1) forwards;
+}
+
+.slide-in-left {
+    animation: slideInLeft 0.5s ease-out forwards;
+}
+
+.slide-in-right {
+    animation: slideInRight 0.5s ease-out forwards;
+}
+
+.scale-in {
+    animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.glow {
+    animation: glow 2s infinite;
+}
+
+.float-up {
+    animation: floatUp 3s ease-in-out infinite;
+}
+
+/* ── Scroll Margin (TOC & Başlıklar) ────────────────────────── */
 .prose h2,
-.prose h3 {
+.prose h3,
+[id] {
     scroll-margin-top: 6rem;
+}
+
+/* ── Ek Utility Sınıfları ──────────────────────────────────── */
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-primary {
+    background: var(--gradient-accent);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.25s ease;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    background: var(--card-bg);
+    color: var(--foreground);
+    border: 2px solid var(--border);
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.25s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-secondary:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: translateY(-2px);
+}
+
+/* ── Input & Form Elemanları ───────────────────────────────── */
+input,
+textarea,
+select {
+    background: var(--card-bg);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    font-family: inherit;
+    transition: all 0.25s ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+/* ── Responsive Başlık ─────────────────────────────────────── */
+@media (max-width: 768px) {
+    .prose h2 {
+        font-size: 1.5rem;
+        margin-top: 2.2em;
+    }
+
+    .prose h3 {
+        font-size: 1.25rem;
+    }
+
+    .prose p {
+        font-size: 1rem;
+    }
+}
+
+/* ── Scrollbar Stilleri ────────────────────────────────────── */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+}
+
+/* ── Seçim Stili ───────────────────────────────────────────── */
+::selection {
+    background: var(--accent);
+    color: white;
 }

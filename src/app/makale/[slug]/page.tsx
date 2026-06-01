@@ -11,6 +11,7 @@ import { ShareButtons } from "@/src/components/ShareButtons";
 import { JsonLd } from "@/src/components/JsonLd";
 import { makaleSchema, faqSchema, breadcrumbSchema } from "@/src/lib/schema";
 
+
 export const revalidate = 3600; // sayfa 1 saat cache'lenir, sonra yenilenir
 export const dynamicParams = true; // yeni slug'lar ilk istekte üretilip cache'lenir
 
