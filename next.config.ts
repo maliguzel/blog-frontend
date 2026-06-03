@@ -1,9 +1,8 @@
-// next.config.js
-/** @type {import('next').NextConfig} */
+// next.config.ts
 const nextConfig = {
     images: {
+        unoptimized: true,
         remotePatterns: [
-            // Unsplash
             {
                 protocol: "https",
                 hostname: "images.unsplash.com",
@@ -14,16 +13,19 @@ const nextConfig = {
             },
             {
                 protocol: "https",
+                hostname: "cdn.pixabay.com",
+            },
+            {
+                protocol: "https",
                 hostname: "images.pexels.com",
             },
-            // Wikipedia / Wikimedia
             {
                 protocol: "https",
                 hostname: "upload.wikimedia.org",
             },
             {
                 protocol: "https",
-                hostname: "**.wikipedia.org",
+                hostname: "res.cloudinary.com",
             },
         ],
     },

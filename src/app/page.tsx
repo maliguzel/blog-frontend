@@ -10,7 +10,14 @@ import { PaginationBar } from "../components/PaginationBar";
 import { Sidebar } from "../components/Sidebar";
 import { LikeButton } from "../components/LikeButton";
 import { ShareButton } from "../components/ShareButton";
-import { SkeletonGrid } from "../components/SkeletonGrid";
+import {
+    collection,
+    query,
+    where,
+    orderBy,
+    limit,
+    getDocs,
+} from "firebase/firestore";
 
 const SAYFA_BOYUTU = 12;
 
@@ -61,7 +68,10 @@ async function getMakaleler(params: {
 }): Promise<{ makaleler: Makale[]; sonrakiSayfaVar: boolean }> {
     const { kategori, siralama, arama, sayfa } = params;
 
-    let q: FirebaseFirestore.Query = adminDb.collection("makaleler");
+    let q: FirebaseFirestore.Query = adminDb
+        .collection("makaleler")
+        .where("show_homepage", "==", true)
+        .where("content_type", "==", "article");
 
     if (kategori && kategori !== "Tümü") {
         q = q.where("kategori", "==", kategori);
@@ -69,6 +79,7 @@ async function getMakaleler(params: {
 
     const sortField =
         siralama === "populer" ? "okunma_sayisi" : "olusturulma_tarihi";
+
     q = q.orderBy(sortField, "desc");
 
     if (arama?.trim()) {
@@ -451,6 +462,8 @@ export default async function Home({ searchParams }: { searchParams: any }) {
 async function getPopulerMakaleler(): Promise<Makale[]> {
     const q = adminDb
         .collection("makaleler")
+        .where("content_type", "==", "article")
+        .where("show_homepage", "==", true)
         .orderBy("okunma_sayisi", "desc")
         .limit(5);
     const snap = await q.get();

@@ -39,7 +39,9 @@ async function getKategoriMakaleleri(
 ): Promise<{ makaleler: Makale[]; sonrakiSayfaVar: boolean }> {
     let q: FirebaseFirestore.Query = adminDb
         .collection("makaleler")
-        .where("kategori", "==", kategori);
+        .where("kategori", "==", kategori)
+        .where("show_homepage", "==", true)
+        .where("content_type", "==", "article");
 
     const sortField =
         siralama === "populer" ? "okunma_sayisi" : "olusturulma_tarihi";
