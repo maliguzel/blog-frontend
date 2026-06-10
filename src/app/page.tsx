@@ -296,7 +296,26 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /* ── Hero Section ── */
-function Hero() {
+function Hero({ stats }: { stats: SiteStats }) {
+    // Sadece anlamlı (0 olmayan) istatistikleri göster
+    const statItems = [
+        {
+            label: "Makale",
+            value: stats.makaleSayisi,
+            fmt: formatSayi(stats.makaleSayisi),
+        },
+        {
+            label: "Toplam Okunma",
+            value: stats.toplamOkunma,
+            fmt: formatSayi(stats.toplamOkunma),
+        },
+        {
+            label: "Kategori",
+            value: stats.kategoriSayisi,
+            fmt: `${stats.kategoriSayisi}`,
+        },
+    ].filter((s) => s.value > 0);
+
     return (
         <div className="relative mb-16 rounded-3xl overflow-hidden border border-[var(--border)] group">
             {/* Animated Background */}
@@ -342,23 +361,21 @@ function Hero() {
                         analiz ediyoruz.
                     </p>
 
-                    {/* Stats */}
-                    <div className="flex flex-wrap gap-8 mt-12">
-                        {[
-                            { label: "Makale", value: "500+" },
-                            { label: "Okuyucu", value: "50K+" },
-                            { label: "Kategori", value: "10+" },
-                        ].map((stat) => (
-                            <div key={stat.label} className="flex flex-col">
-                                <span className="text-3xl md:text-4xl font-bold text-[var(--accent)]">
-                                    {stat.value}
-                                </span>
-                                <span className="text-sm text-[var(--muted)] uppercase tracking-wider">
-                                    {stat.label}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
+                    {/* Stats — gerçek Firestore verileri */}
+                    {statItems.length > 0 && (
+                        <div className="flex flex-wrap gap-8 mt-12">
+                            {statItems.map((stat) => (
+                                <div key={stat.label} className="flex flex-col">
+                                    <span className="text-3xl md:text-4xl font-bold text-[var(--accent)]">
+                                        {stat.fmt}
+                                    </span>
+                                    <span className="text-sm text-[var(--muted)] uppercase tracking-wider">
+                                        {stat.label}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -387,6 +404,7 @@ export default async function Home({ searchParams }: { searchParams: any }) {
     });
 
     const populerMakaleler = await getPopulerMakaleler();
+    const siteStats = await getSiteStats();
     const filtreSiz =
         !arama && kategori === "Tümü" && siralama === "yeni" && sayfa === 1;
     const featured = filtreSiz ? makaleler[0] : null;
@@ -394,7 +412,7 @@ export default async function Home({ searchParams }: { searchParams: any }) {
 
     return (
         <div className="max-w-7xl mx-auto px-6 py-12 lg:py-16">
-            <Hero />
+            <Hero stats={siteStats} />
 
             <div className="flex flex-col lg:flex-row gap-12">
                 {/* Ana İçerik */}
@@ -468,4 +486,57 @@ async function getPopulerMakaleler(): Promise<Makale[]> {
         .limit(5);
     const snap = await q.get();
     return snap.docs.map(docToMakale);
+}
+
+/* ── Gerçek Site İstatistikleri (Firestore) ── */
+type SiteStats = {
+    makaleSayisi: number;
+    toplamOkunma: number;
+    kategoriSayisi: number;
+};
+
+async function getSiteStats(): Promise<SiteStats> {
+    const base = adminDb
+        .collection("makaleler")
+        .where("content_type", "==", "article")
+        .where("show_homepage", "==", true);
+
+    let makaleSayisi = 0;
+    let toplamOkunma = 0;
+
+    try {
+        // count() ucuz: tüm dokümanları okumadan sayar
+        const countSnap = await base.count().get();
+        makaleSayisi = countSnap.data().count;
+    } catch {
+        makaleSayisi = 0;
+    }
+
+    try {
+        // sum() aggregation — firebase-admin v12+ gerektirir; yoksa 0'a düşer
+        const { AggregateField } = await import("firebase-admin/firestore");
+        const sumSnap = await base
+            .aggregate({ toplam: AggregateField.sum("okunma_sayisi") })
+            .get();
+        toplamOkunma = sumSnap.data().toplam ?? 0;
+    } catch {
+        toplamOkunma = 0;
+    }
+
+    return {
+        makaleSayisi,
+        toplamOkunma,
+        kategoriSayisi: KATEGORILER.length,
+    };
+}
+
+/* Büyük sayıları sadeleştir: 1.250 → "1,2B", 2.000.000 → "2Mn" */
+function formatSayi(n: number): string {
+    if (n >= 1_000_000) {
+        return `${(n / 1_000_000).toFixed(1).replace(".0", "").replace(".", ",")}Mn`;
+    }
+    if (n >= 1_000) {
+        return `${(n / 1_000).toFixed(1).replace(".0", "").replace(".", ",")}B`;
+    }
+    return `${n}`;
 }

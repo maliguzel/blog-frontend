@@ -32,16 +32,11 @@ interface Makale {
     olusturulma_tarihi: FirebaseFirestore.Timestamp | null;
     guncelleme_tarihi: FirebaseFirestore.Timestamp | null;
 
-    // Opsiyonel SSS alanı
+    
     sss?: { soru: string; cevap: string }[];
 
-    // Opsiyonel YouTube video alanı
-    youtube_video?: {
-        embed_url: string;
-        title: string;
-        channel_title: string;
-    };
-    paa_sorulari?: string[];
+    
+    paa_sorulari?: { soru: string; cevap: string }[];
 }
 
 // ── TOC (İçindekiler) — anchor'lar createSlug ile, h2 id'leriyle eşleşir ─
@@ -324,30 +319,7 @@ export default async function MakaleSayfasi({
                     </ReactMarkdown>
                 </div>
 
-                {/* 👇 YOUTUBE KODU BURAYA GELECEK 👇 */}
-                {/* YouTube videosu (varsa) */}
-                {makale.youtube_video && (
-                    <div className="my-10">
-                        <h2 className="font-[family-name:var(--font-display)] text-2xl font-bold mb-4">
-                            🎥 Videolu Anlatım
-                        </h2>
-                        <div className="aspect-video rounded-xl overflow-hidden shadow-md">
-                            <iframe
-                                src={makale.youtube_video.embed_url}
-                                title={makale.youtube_video.title}
-                                frameBorder="0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                                className="w-full h-full"
-                            />
-                        </div>
-                        <p className="text-sm text-[var(--muted)] mt-2">
-                            📺 Kaynak: {makale.youtube_video.channel_title} ·{" "}
-                            {makale.youtube_video.title}
-                        </p>
-                    </div>
-                )}
-                {/* 👆 YOUTUBE KODU BİTİŞ 👆 */}
+                
 
                 {/* FAQ (varsa) — görsel akordeon */}
                 {makale.sss && makale.sss.length > 0 && (
@@ -380,24 +352,21 @@ export default async function MakaleSayfasi({
                         <h2 className="font-[family-name:var(--font-display)] text-2xl font-bold mb-4 flex items-center gap-2">
                             <span>🔍</span> Bunlar da Merak Ediliyor
                         </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {makale.paa_sorulari.map((soru, idx) => (
-                                <div
+                        <div className="space-y-3">
+                            {makale.paa_sorulari.map((item, idx) => (
+                                <details
                                     key={idx}
-                                    className="flex items-start gap-2 p-3 rounded-lg bg-[var(--card-bg)] border border-[var(--border)]"
+                                    className="rounded-xl border border-[var(--border)] bg-[var(--card-bg)] p-4"
                                 >
-                                    <span className="text-[var(--accent)] font-bold">
-                                        ❓
-                                    </span>
-                                    <span className="text-sm text-[var(--foreground)]">
-                                        {soru}
-                                    </span>
-                                </div>
+                                    <summary className="font-semibold cursor-pointer">
+                                        {item.soru}
+                                    </summary>
+                                    <p className="mt-2 text-[var(--muted)] leading-relaxed">
+                                        {item.cevap}
+                                    </p>
+                                </details>
                             ))}
                         </div>
-                        <p className="text-xs text-[var(--muted)] mt-3">
-                            Kullanıcılar bu konuları da merak ediyor.
-                        </p>
                     </section>
                 )}
                 {/* 👆 PAA KODU BİTİŞ 👆 */}
