@@ -31,11 +31,10 @@ interface Makale {
     okunma_sayisi: number;
     olusturulma_tarihi: FirebaseFirestore.Timestamp | null;
     guncelleme_tarihi: FirebaseFirestore.Timestamp | null;
+    seo_status?: string;
 
-    
     sss?: { soru: string; cevap: string }[];
 
-    
     paa_sorulari?: { soru: string; cevap: string }[];
 }
 
@@ -94,9 +93,20 @@ export async function generateMetadata({
         const gorsel = d.gorsel_url || "";
         const ogImageUrl = `${SITE_URL}/api/og?slug=${slug}`;
 
+        const isNoIndex = d.seo_status === "noindex";
+
         return {
             title: baslik,
             description: ozet,
+
+            robots: {
+                index: !isNoIndex,
+                follow: true,
+                googleBot: {
+                    index: !isNoIndex,
+                    follow: true,
+                },
+            },
             alternates: { canonical: `/makale/${slug}` },
             openGraph: {
                 title: baslik,
@@ -318,8 +328,6 @@ export default async function MakaleSayfasi({
                         {makale.icerik}
                     </ReactMarkdown>
                 </div>
-
-                
 
                 {/* FAQ (varsa) — görsel akordeon */}
                 {makale.sss && makale.sss.length > 0 && (
