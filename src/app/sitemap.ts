@@ -6,6 +6,11 @@ import { db } from "@/src/lib/firebase";
 const SITE_URL =
     process.env.NEXT_PUBLIC_SITE_URL || "https://nedirbunlar.com.tr";
 
+// Sitemap'in periyodik olarak yeniden oluşturulmasını sağlar.
+// Önceden bu dosya build-time'da bir kez üretilip cache'leniyordu,
+// bu yüzden yeni eklenen makaleler sitemap.xml'e düşmüyordu.
+export const revalidate = 3600; // 1 saat
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     let articleUrls: MetadataRoute.Sitemap = [];
     let categoryUrls: MetadataRoute.Sitemap = [];
