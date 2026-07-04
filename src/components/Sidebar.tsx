@@ -23,7 +23,7 @@ export function Sidebar({ populerMakaleler }: { populerMakaleler: Makale[] }) {
                             </span>
                             <Link
                                 href={`/makale/${m.slug}`}
-                                className="hover:text-[var(--accent)] transition-colors line-clamp-2 text-sm font-medium leading-tight group-hover:translate-x-0.5 transition-transform"
+                                className="hover:text-[var(--accent)] line-clamp-2 text-sm font-medium leading-tight group-hover:translate-x-0.5 transition-transform"
                             >
                                 {m.seo_baslik || m.baslik}
                             </Link>
