@@ -10,9 +10,6 @@ import { TOOLS } from "@/src/lib/tools";
 const SITE_URL =
     process.env.NEXT_PUBLIC_SITE_URL || "https://nedirbunlar.com.tr";
 
-// force-dynamic YOK. Sitemap saatte bir yeniden üretilir; her bot ziyaretinde
-// koleksiyonu baştan taramaz. Anında tazelemek için revalidate webhook'una
-// revalidatePath("/sitemap.xml") ekleyebilirsin.
 export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
