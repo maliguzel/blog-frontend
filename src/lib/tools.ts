@@ -25,6 +25,38 @@ export const TOOLS: Tool[] = [
             "kimya hesaplama aracı",
         ],
     },
+    {
+        title: "%40 Ortopedik Engelli ÖTV’siz Araç Uygunluk Testi",
+        slug: "engelli-arac-otv-muafiyeti-hesaplama",
+        description:
+            "Ortopedik engel oranı, sürücü belgesi alamaz şartı, araç sınıfı, yerli katkı oranı ve fiyat sınırına göre 2026 yılı için ön uygunluk kontrolü yapın.",
+        category: "Hukuk / Vergi",
+        keywords: [
+            "engelli araç",
+            "ÖTV muafiyeti",
+            "ortopedik engelli",
+            "araç alımı",
+            "vergi muafiyeti",
+            "uygunluk testi",
+            "2026",
+        ],
+    },
+    {
+        title: "2026 Nöbet Ücreti Hesaplama Aracı",
+        slug: "nobet-ucreti-hesaplama",
+        description:
+            "657 sayılı memur, 4/B sözleşmeli personel ve 4/D sürekli işçiler için 2026 Temmuz zamlı normal, riskli birim ve bayram nöbeti ücreti hesaplama aracı.",
+        category: "Sağlık / Bordro",
+        keywords: [
+            "nöbet ücreti hesaplama",
+            "riskli birim nöbet ücreti",
+            "bayram nöbet ücreti",
+            "sağlık personeli nöbet ücreti",
+            "657 nöbet ücreti",
+            "4b sözleşmeli nöbet ücreti",
+            "2026",
+        ],
+    },
 ];
 
 export function getTool(slug: string): Tool | undefined {
