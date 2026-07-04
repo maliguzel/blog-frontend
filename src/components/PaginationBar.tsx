@@ -1,7 +1,8 @@
 // src/components/PaginationBar.tsx
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 
 type Props = {
     mevcutSayfa: number;
@@ -9,36 +10,50 @@ type Props = {
 };
 
 export function PaginationBar({ mevcutSayfa, sonrakiSayfaVar }: Props) {
-    const router = useRouter();
+    const pathname = usePathname();
     const searchParams = useSearchParams();
 
-    const goToPage = (page: number) => {
+    // Mevcut query'yi (siralama, kategori, arama...) koruyarak sayfa href'i üret.
+    // <Link> olduğu için pagination artık taranabilir; Google 2+. sayfaları keşfeder.
+    const href = (page: number) => {
         const params = new URLSearchParams(searchParams.toString());
-        params.set("sayfa", page.toString());
-        router.push(`?${params.toString()}`);
-        // Sayfanın başına scroll
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        if (page <= 1) params.delete("sayfa");
+        else params.set("sayfa", String(page));
+        const qs = params.toString();
+        return qs ? `${pathname}?${qs}` : pathname;
     };
 
+    const aktifBtn =
+        "border-[var(--border)] text-[var(--foreground)] hover:border-[var(--accent)] hover:text-[var(--accent)] hover:shadow-lg hover:bg-[var(--accent-light)]/50";
+    const pasifBtn =
+        "opacity-40 cursor-not-allowed border-[var(--border)] text-[var(--muted)]";
+    const ortak =
+        "group px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center gap-2 border-2";
+
     return (
-        <div className="flex justify-center items-center gap-4 mt-16 mb-8">
-            {/* Önceki Buton */}
-            <button
-                onClick={() => goToPage(mevcutSayfa - 1)}
-                disabled={mevcutSayfa === 1}
-                className={`group px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-200
-                    flex items-center gap-2 border-2
-                    ${
-                        mevcutSayfa === 1
-                            ? "opacity-40 cursor-not-allowed border-[var(--border)] text-[var(--muted)]"
-                            : "border-[var(--border)] text-[var(--foreground)] hover:border-[var(--accent)] hover:text-[var(--accent)] hover:shadow-lg hover:bg-[var(--accent-light)]/50"
-                    }`}
-            >
-                <span className="group-hover:-translate-x-1 transition-transform">
-                    ←
+        <nav
+            aria-label="Sayfalama"
+            className="flex justify-center items-center gap-4 mt-16 mb-8"
+        >
+            {/* Önceki */}
+            {mevcutSayfa > 1 ? (
+                <Link
+                    href={href(mevcutSayfa - 1)}
+                    rel="prev"
+                    aria-label="Önceki sayfa"
+                    className={`${ortak} ${aktifBtn}`}
+                >
+                    <span className="group-hover:-translate-x-1 transition-transform">
+                        ←
+                    </span>
+                    Önceki
+                </Link>
+            ) : (
+                <span aria-disabled className={`${ortak} ${pasifBtn}`}>
+                    <span>←</span>
+                    Önceki
                 </span>
-                Önceki
-            </button>
+            )}
 
             {/* Sayfa Göstergesi */}
             <div className="relative min-w-fit">
@@ -53,23 +68,25 @@ export function PaginationBar({ mevcutSayfa, sonrakiSayfaVar }: Props) {
                 </div>
             </div>
 
-            {/* Sonraki Buton */}
-            <button
-                onClick={() => goToPage(mevcutSayfa + 1)}
-                disabled={!sonrakiSayfaVar}
-                className={`group px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-200
-                    flex items-center gap-2 border-2
-                    ${
-                        !sonrakiSayfaVar
-                            ? "opacity-40 cursor-not-allowed border-[var(--border)] text-[var(--muted)]"
-                            : "border-[var(--border)] text-[var(--foreground)] hover:border-[var(--accent)] hover:text-[var(--accent)] hover:shadow-lg hover:bg-[var(--accent-light)]/50"
-                    }`}
-            >
-                Sonraki
-                <span className="group-hover:translate-x-1 transition-transform">
-                    →
+            {/* Sonraki */}
+            {sonrakiSayfaVar ? (
+                <Link
+                    href={href(mevcutSayfa + 1)}
+                    rel="next"
+                    aria-label="Sonraki sayfa"
+                    className={`${ortak} ${aktifBtn}`}
+                >
+                    Sonraki
+                    <span className="group-hover:translate-x-1 transition-transform">
+                        →
+                    </span>
+                </Link>
+            ) : (
+                <span aria-disabled className={`${ortak} ${pasifBtn}`}>
+                    Sonraki
+                    <span>→</span>
                 </span>
-            </button>
-        </div>
+            )}
+        </nav>
     );
 }

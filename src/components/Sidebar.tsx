@@ -42,7 +42,7 @@ export function Sidebar({ populerMakaleler }: { populerMakaleler: Makale[] }) {
                 </div>
                 <div className="flex flex-wrap gap-2">
                     {[
-                        { tag: "Seçim 2024", icon: "🗳️" },
+                        { tag: "Seçim", icon: "🗳️" },
                         { tag: "Yapay Zeka", icon: "🤖" },
                         { tag: "Spor", icon: "⚽" },
                         { tag: "Enflasyon", icon: "📊" },
@@ -50,7 +50,7 @@ export function Sidebar({ populerMakaleler }: { populerMakaleler: Makale[] }) {
                     ].map((item) => (
                         <Link
                             key={item.tag}
-                            href={`/?arama=${item.tag}`}
+                            href={`/?arama=${encodeURIComponent(item.tag)}`}
                             className="group inline-flex items-center gap-1.5 text-xs font-semibold
                                  bg-[var(--card-bg)] text-[var(--accent)] px-3 py-2 rounded-full
                                  border border-[var(--accent)]/30 hover:border-[var(--accent)]
@@ -78,9 +78,16 @@ export function Sidebar({ populerMakaleler }: { populerMakaleler: Makale[] }) {
                         En önemli olayları her hafta özet halinde alın
                     </p>
 
+                    {/* NOT: Bu form henüz bir yere bağlı DEĞİL. Sidebar bir server
+                        component olduğu için onSubmit eklenemez; submit sayfayı
+                        yeniler ve e-posta hiçbir yere gitmez. Çalışması için ya
+                        bir server action ya da küçük bir client alt-bileşen +
+                        /api/newsletter endpoint'i gerekir. */}
                     <form className="flex flex-col gap-2">
                         <input
                             type="email"
+                            name="email"
+                            aria-label="E-posta adresiniz"
                             placeholder="E-posta adresiniz"
                             className="w-full bg-[var(--card-bg)] border border-[var(--border)] 
                                  rounded-xl px-4 py-2.5 text-sm
@@ -110,7 +117,10 @@ export function Sidebar({ populerMakaleler }: { populerMakaleler: Makale[] }) {
                     {[
                         { label: "Tüm Makaleler", href: "/" },
                         { label: "Kategoriler", href: "/?kategori=Tümü" },
-                        { label: "İletişim", href: "#" },
+                        {
+                            label: "İletişim",
+                            href: `mailto:${process.env.NEXT_PUBLIC_CONTACT_EMAIL || "iletisim@nedirbunlar.com.tr"}`,
+                        },
                     ].map((link) => (
                         <li key={link.label}>
                             <Link

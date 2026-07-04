@@ -1,10 +1,12 @@
 // src/app/makale/[slug]/page.tsx
+import { cache } from "react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
-import { adminDb } from "@/src/lib/firebase-admin";
+import remarkGfm from "remark-gfm";
+import { getAdminFirestore } from "@/src/lib/firebase-admin";
 import { createSlug, cocukMetni } from "@/src/lib/slug";
 import { ReadCounter } from "@/src/components/ReadCounter";
 import { ShareButtons } from "@/src/components/ShareButtons";
@@ -39,6 +41,15 @@ interface Makale {
     paa_sorulari?: { soru: string; cevap: string }[];
 }
 
+// ── Veri çekme (cache'li): generateMetadata + sayfa aynı isteği paylaşır,
+//    böylece istek başına TEK Firestore okuması olur. doc ID = slug. ─────
+const getMakale = cache(async (slug: string): Promise<Makale | null> => {
+    const db = getAdminFirestore();
+    const doc = await db.collection("makaleler").doc(slug).get();
+    if (!doc.exists) return null;
+    return { id: doc.id, ...doc.data() } as Makale;
+});
+
 // ── TOC (İçindekiler) — anchor'lar createSlug ile, h2 id'leriyle eşleşir ─
 function extractToc(markdown: string) {
     if (!markdown) return [];
@@ -51,17 +62,11 @@ function extractToc(markdown: string) {
         });
 }
 
-// ── Veri çekme: doc ID = slug (otomasyon document(slug) ile kaydediyor) ─
-async function getMakale(slug: string): Promise<Makale | null> {
-    const doc = await adminDb.collection("makaleler").doc(slug).get();
-    if (!doc.exists) return null;
-    return { id: doc.id, ...doc.data() } as Makale;
-}
-
 async function getIlgiliMakaleler(kategori: string, slugHaric: string) {
     if (!kategori) return [];
     try {
-        const snap = await adminDb
+        const db = getAdminFirestore();
+        const snap = await db   
             .collection("makaleler")
             .where("kategori", "==", kategori)
             .orderBy("olusturulma_tarihi", "desc")
@@ -72,6 +77,8 @@ async function getIlgiliMakaleler(kategori: string, slugHaric: string) {
             .filter((m) => m.slug !== slugHaric)
             .slice(0, 3);
     } catch {
+        // NOT: kategori + olusturulma_tarihi composite index yoksa burası
+        // sessizce boş döner. Firebase console > Indexes'te index'i doğrula.
         return [];
     }
 }
@@ -85,10 +92,9 @@ export async function generateMetadata({
     const { slug } = await Promise.resolve(params);
 
     try {
-        const doc = await adminDb.collection("makaleler").doc(slug).get();
-        if (!doc.exists) return { title: "Makale Bulunamadı" };
+        const d = await getMakale(slug);
+        if (!d) return { title: "Makale Bulunamadı" };
 
-        const d = doc.data()!;
         const baslik = d.seo_baslik || d.baslik || "Makale";
         const ozet = d.ozet || "";
         const gorsel = d.gorsel_url || "";
@@ -304,9 +310,10 @@ export default async function MakaleSayfasi({
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                 </div>
 
-                {/* Makale metni — h2/h3 id'leri createSlug ile (TOC eşleşir) */}
+                {/* Makale metni — gfm açık, h2/h3 id'leri createSlug ile (TOC eşleşir) */}
                 <div className="prose prose-lg lg:prose-xl max-w-none">
                     <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
                         components={{
                             h2: ({ children }) => (
                                 <h2
@@ -329,7 +336,13 @@ export default async function MakaleSayfasi({
                         {makale.icerik}
                     </ReactMarkdown>
                 </div>
-                {slug.includes("mol") && <MolHesaplamaAraci />}
+
+                {/* Mol hesaplama aracı — substring değil, tam/prefix eşleşme
+                    ("mola", "molekul" gibi slug'lar yanlış tetiklemesin) */}
+                {(makale.slug === "mol" || makale.slug.startsWith("mol-")) && (
+                    <MolHesaplamaAraci />
+                )}
+
                 {/* FAQ (varsa) — görsel akordeon */}
                 {makale.sss && makale.sss.length > 0 && (
                     <section className="mt-12">
@@ -354,7 +367,6 @@ export default async function MakaleSayfasi({
                     </section>
                 )}
 
-                {/* 👇 PAA KODUNU BURAYA YAPIŞTIR 👇 */}
                 {/* PAA (People Also Ask) */}
                 {makale.paa_sorulari && makale.paa_sorulari.length > 0 && (
                     <section className="mt-12">
@@ -378,7 +390,6 @@ export default async function MakaleSayfasi({
                         </div>
                     </section>
                 )}
-                {/* 👆 PAA KODU BİTİŞ 👆 */}
 
                 {/* Alt paylaşım */}
                 <div className="mt-12 pt-8 border-t border-[var(--border)] flex items-center justify-between flex-wrap gap-4">

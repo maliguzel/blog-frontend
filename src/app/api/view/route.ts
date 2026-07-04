@@ -1,15 +1,18 @@
 // src/app/api/view/route.ts
 // Okunma sayacını SADECE server artırır. İstemci Firestore'a hiç dokunmaz.
-// adminDb (Node SDK) → runtime "nodejs".
+// getAdminFirestore (Node SDK) → runtime "nodejs".
 
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
-import { adminDb } from "@/src/lib/firebase-admin";
+import { getAdminFirestore } from "@/src/lib/firebase-admin";
 
 export const runtime = "nodejs";
 
 const COOKIE = "nb_v"; // görülen makaleler (dedup)
-const MAX_SLUG = 60; // cookie'de tutulacak en fazla slug (boyut sınırı)
+const MAX_SLUG = 30; // cookie'de tutulacak en fazla slug — 30 × ~90 ≈ 2.7KB,
+//                      attribute payıyla birlikte 4KB tarayıcı limitinin altında.
+//                      (60 iken ~5.4KB olup limit aşılınca tarayıcı cookie'yi
+//                       sessizce atıyor ve dedup bozuluyordu.)
 const COOLDOWN = 60 * 60 * 12; // 12 saat (saniye)
 
 export async function POST(req: NextRequest) {
@@ -50,7 +53,8 @@ export async function POST(req: NextRequest) {
 
     // ── Sadece var olan makaleyi say (rastgele slug şişiremesin) ──
     try {
-        const ref = adminDb.collection("makaleler").doc(slug);
+        const db = getAdminFirestore();
+        const ref = db.collection("makaleler").doc(slug);
         const snap = await ref.get();
         if (!snap.exists) {
             return NextResponse.json(

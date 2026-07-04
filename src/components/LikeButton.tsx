@@ -29,6 +29,7 @@ export function LikeButton({
             onClick={toggleLike}
             className="flex items-center gap-1 text-xs text-[var(--muted)] hover:text-red-500 transition"
             aria-label="Beğen"
+            aria-pressed={liked}
         >
             <svg
                 className="w-4 h-4"

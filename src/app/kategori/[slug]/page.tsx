@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { adminDb } from "@/src/lib/firebase-admin";
+import { getAdminFirestore } from "@/src/lib/firebase-admin";
 import { createSlug } from "@/src/lib/slug";
 import { KATEGORILER, MakaleKart, type Makale } from "@/src/app/page";
 import { PaginationBar } from "@/src/components/PaginationBar";
@@ -37,7 +37,8 @@ async function getKategoriMakaleleri(
     siralama: string,
     sayfa: number,
 ): Promise<{ makaleler: Makale[]; sonrakiSayfaVar: boolean }> {
-    let q: FirebaseFirestore.Query = adminDb
+    const db = getAdminFirestore();
+    let q: FirebaseFirestore.Query = db
         .collection("makaleler")
         .where("kategori", "==", kategori)
         .where("show_homepage", "==", true)
@@ -47,18 +48,26 @@ async function getKategoriMakaleleri(
         siralama === "populer" ? "okunma_sayisi" : "olusturulma_tarihi";
     q = q.orderBy(sortField, "desc");
 
-    if (sayfa > 1) {
-        const cursorSnap = await q.limit((sayfa - 1) * SAYFA_BOYUTU).get();
-        const lastDoc = cursorSnap.docs.at(-1);
-        if (lastDoc) q = q.startAfter(lastDoc);
-    }
+    try {
+        if (sayfa > 1) {
+            const cursorSnap = await q.limit((sayfa - 1) * SAYFA_BOYUTU).get();
+            const lastDoc = cursorSnap.docs.at(-1);
+            if (lastDoc) q = q.startAfter(lastDoc);
+        }
 
-    const snap = await q.limit(SAYFA_BOYUTU + 1).get();
-    const sonrakiSayfaVar = snap.docs.length > SAYFA_BOYUTU;
-    return {
-        makaleler: snap.docs.slice(0, SAYFA_BOYUTU).map(docToMakale),
-        sonrakiSayfaVar,
-    };
+        const snap = await q.limit(SAYFA_BOYUTU + 1).get();
+        const sonrakiSayfaVar = snap.docs.length > SAYFA_BOYUTU;
+        return {
+            makaleler: snap.docs.slice(0, SAYFA_BOYUTU).map(docToMakale),
+            sonrakiSayfaVar,
+        };
+    } catch {
+        // NOT: bu sorgu, her sıralama alanı için ayrı composite index ister:
+        //   kategori + show_homepage + content_type + olusturulma_tarihi(desc)
+        //   kategori + show_homepage + content_type + okunma_sayisi(desc)
+        // İkisi de Firebase Console > Indexes'te olmalı; yoksa burası boş döner.
+        return { makaleler: [], sonrakiSayfaVar: false };
+    }
 }
 
 type Params = { slug: string };
@@ -197,7 +206,7 @@ export default async function KategoriSayfasi({
                         <div className="flex flex-wrap gap-6 pt-6 border-t border-[var(--border)]">
                             <div className="flex flex-col">
                                 <span className="text-3xl font-bold text-[var(--accent)]">
-                                    {makaleler.length}+
+                                    {makaleler.length}
                                 </span>
                                 <span className="text-xs text-[var(--muted)] uppercase tracking-wider font-medium">
                                     Bu Sayfada
@@ -238,7 +247,7 @@ export default async function KategoriSayfasi({
                                     s.value === "populer"
                                         ? "?siralama=populer"
                                         : ""
-                                }${sayfa > 1 ? `&sayfa=${sayfa}` : ""}`}
+                                }`}
                                 className={`px-5 py-3 text-sm font-semibold transition-all duration-200
                                     ${
                                         siralama === s.value
@@ -255,10 +264,10 @@ export default async function KategoriSayfasi({
                 {/* Makale Sayısı */}
                 <div className="text-right">
                     <p className="text-xs text-[var(--muted)] uppercase tracking-widest font-medium">
-                        Toplam Makale
+                        Bu sayfada
                     </p>
                     <p className="text-3xl font-bold text-[var(--accent)]">
-                        {makaleler.length > 0 ? `${makaleler.length}+` : "0"}
+                        {makaleler.length}
                     </p>
                 </div>
             </div>

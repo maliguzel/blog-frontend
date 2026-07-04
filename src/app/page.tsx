@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { adminDb } from "../lib/firebase-admin";
+import { getAdminFirestore } from "../lib/firebase-admin";
 import { createSlug } from "../lib/slug";
 import { MakaleFiltreleri } from "../components/MakaleFiltreleri";
 import { PaginationBar } from "../components/PaginationBar";
@@ -68,7 +68,8 @@ async function getMakaleler(params: {
 }): Promise<{ makaleler: Makale[]; sonrakiSayfaVar: boolean }> {
     const { kategori, siralama, arama, sayfa } = params;
 
-    let q: FirebaseFirestore.Query = adminDb
+    const db = getAdminFirestore();
+    let q: FirebaseFirestore.Query = db
         .collection("makaleler")
         .where("show_homepage", "==", true)
         .where("content_type", "==", "article");
@@ -478,7 +479,8 @@ export default async function Home({ searchParams }: { searchParams: any }) {
 }
 
 async function getPopulerMakaleler(): Promise<Makale[]> {
-    const q = adminDb
+    const db = getAdminFirestore();
+    const q = db
         .collection("makaleler")
         .where("content_type", "==", "article")
         .where("show_homepage", "==", true)
@@ -496,7 +498,8 @@ type SiteStats = {
 };
 
 async function getSiteStats(): Promise<SiteStats> {
-    const base = adminDb
+    const db = getAdminFirestore();
+    const base = db
         .collection("makaleler")
         .where("content_type", "==", "article")
         .where("show_homepage", "==", true);

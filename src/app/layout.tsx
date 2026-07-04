@@ -5,6 +5,7 @@ import { ThemeToggle } from "@/src/components/ThemeToggle";
 import "./globals.css";
 import Script from "next/script";
 import Link from "next/link";
+import { createSlug } from "@/src/lib/slug";
 
 const playfair = Playfair_Display({
     variable: "--font-display",
@@ -46,7 +47,9 @@ export const metadata: Metadata = {
     metadataBase: new URL(SITE_URL),
 
     title: {
-        default: "Ana Sayfa",
+        // Ana sayfanın <title>'ı buydu: "Ana Sayfa" — SEO açısından zayıf.
+        // Markalı default; alt sayfalar template ile "%s | Nedir Bunlar?" alır.
+        default: "Nedir Bunlar? — Türkiye Gündemi, Sade Bir Dille",
         template: "%s | Nedir Bunlar?",
     },
 
@@ -69,6 +72,13 @@ export const metadata: Metadata = {
         siteName: "Nedir Bunlar?",
         locale: "tr_TR",
         type: "website",
+        // Kendi OG görselini set etmeyen sayfalar (ana sayfa, kategori) marka
+        // kartına düşer. /api/og slug'sız çağrılınca marka kartı üretiyor.
+        images: [{ url: "/api/og", width: 1200, height: 630 }],
+    },
+    twitter: {
+        card: "summary_large_image",
+        images: ["/api/og"],
     },
 };
 
@@ -97,9 +107,9 @@ export default function RootLayout({
                                     </div>
                                 </div>
                                 <div>
-                                    <h1 className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight text-[var(--foreground)] group-hover:text-[var(--accent)] transition-colors">
+                                    <span className="block font-[family-name:var(--font-display)] text-xl font-bold tracking-tight text-[var(--foreground)] group-hover:text-[var(--accent)] transition-colors">
                                         Nedir Bunlar?
-                                    </h1>
+                                    </span>
                                     <p className="text-[10px] text-[var(--muted)] uppercase tracking-wider font-semibold hidden sm:block">
                                         Türkiye Gündemi
                                     </p>
@@ -150,7 +160,7 @@ export default function RootLayout({
                                     {FOOTER_KATEGORILER.map((cat) => (
                                         <Link
                                             key={cat}
-                                            href={`/?kategori=${encodeURIComponent(cat)}`}
+                                            href={`/kategori/${createSlug(cat)}`}
                                             className="text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors"
                                         >
                                             {cat} ·

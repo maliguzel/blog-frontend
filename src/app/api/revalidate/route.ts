@@ -21,7 +21,10 @@ export async function POST(req: NextRequest) {
         // gövde yok
     }
 
-    revalidateTag("makaleler", "max");
+    // NOT: Firestore admin SDK ile veri çekildiği için bu tag'in bağlı
+    // olduğu cache yalnızca unstable_cache(fn, keys, { tags: ["makaleler"] })
+    // ile sarılmış okumalarda çalışır. Şu an gerçek yenileme revalidatePath'ten.
+    revalidateTag("makaleler");
 
     if (slug) {
         revalidatePath(`/makale/${slug}`);

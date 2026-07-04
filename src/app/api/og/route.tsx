@@ -1,9 +1,9 @@
 // src/app/api/og/route.tsx
 // Dinamik Open Graph görseli: /api/og?slug=<makale-slug>
-// adminDb (Node SDK) kullandığı için runtime "nodejs" OLMALI (edge'de çalışmaz).
+// getAdminFirestore (Node SDK) kullandığı için runtime "nodejs" OLMALI (edge'de çalışmaz).
 
 import { ImageResponse } from "next/og";
-import { adminDb } from "@/src/lib/firebase-admin";
+import { getAdminFirestore } from "@/src/lib/firebase-admin";
 
 export const runtime = "nodejs";
 
@@ -56,7 +56,8 @@ export async function GET(req: Request) {
 
     if (slug) {
         try {
-            const doc = await adminDb.collection("makaleler").doc(slug).get();
+            const db = getAdminFirestore();
+            const doc = await db.collection("makaleler").doc(slug).get();
             if (doc.exists) {
                 const d = doc.data()!;
                 baslik = d.seo_baslik || d.baslik || baslik;
